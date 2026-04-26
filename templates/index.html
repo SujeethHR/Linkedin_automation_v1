@@ -1,0 +1,1572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>LinkedIn AI Post Studio</title>
+<style>
+:root{
+  --bg:#ffffff;--bg2:#f6f6f4;--bg3:#efefec;
+  --tx:#1a1a1a;--tx2:#555;--tx3:#999;
+  --br:#e0dfd8;--br2:#cccbc3;
+  --blue-bg:#e6f1fb;--blue-tx:#0c447c;
+  --green-bg:#eaf3de;--green-tx:#3b6d11;
+  --red-bg:#fcebeb;--red-tx:#a32d2d;
+  --amber-bg:#faeeda;--amber-tx:#854f0b;
+  --purple-bg:#eeedfe;--purple-tx:#3c3489;
+  --r:8px;--rl:12px;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#1c1c1a;--bg2:#252523;--bg3:#2e2e2b;
+    --tx:#f0efea;--tx2:#aaa9a2;--tx3:#666;
+    --br:#3a3a36;--br2:#4a4a45;
+    --blue-bg:#0c2a42;--blue-tx:#85b7eb;
+    --green-bg:#142808;--green-tx:#97c459;
+    --red-bg:#2d1010;--red-tx:#f09595;
+    --amber-bg:#2a1a04;--amber-tx:#fac775;
+    --purple-bg:#1a1840;--purple-tx:#afa9ec;
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg3);color:var(--tx);min-height:100vh}
+.shell{max-width:860px;margin:0 auto;padding:2rem 1.25rem 5rem}
+
+/* ── Header ── */
+.hd{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.75rem;flex-wrap:wrap;gap:12px}
+.hd h1{font-size:22px;font-weight:600;letter-spacing:-.3px}
+.hd p{font-size:14px;color:var(--tx2);margin-top:3px}
+.key-warn{background:var(--amber-bg);color:var(--amber-tx);font-size:13px;padding:10px 14px;border-radius:var(--r);margin-bottom:1.5rem;border:1px solid var(--amber-tx)}
+
+/* ── Main nav ── */
+.mainnav{display:flex;background:var(--bg);border:1px solid var(--br);border-radius:var(--rl);overflow:hidden;margin-bottom:1.75rem}
+.navbtn{flex:1;padding:12px 6px;text-align:center;cursor:pointer;border-right:1px solid var(--br);background:none;font-family:inherit;transition:background .15s}
+.navbtn:last-child{border-right:none}
+.navbtn:hover{background:var(--bg2)}
+.navbtn.active{background:var(--bg2)}
+.navbtn.cal-btn{flex:0 0 auto;padding:12px 18px;font-weight:500;color:var(--purple-tx);background:var(--purple-bg)}
+.navbtn.cal-btn.active{background:var(--purple-bg)}
+.nb-num{font-size:11px;color:var(--tx3);display:block;margin-bottom:2px}
+.navbtn.active .nb-num,.navbtn.done .nb-num{color:var(--tx2)}
+.navbtn.done{background:var(--green-bg)}
+.navbtn.done .nb-num{color:var(--green-tx)}
+.nb-lbl{font-size:12px;font-weight:500;color:var(--tx2)}
+.navbtn.active .nb-lbl{color:var(--tx)}
+.navbtn.done .nb-lbl{color:var(--green-tx)}
+
+/* ── Sections ── */
+.sec{display:none}.sec.active{display:block}
+
+/* ── Cards ── */
+.card{background:var(--bg);border:1px solid var(--br);border-radius:var(--rl);padding:1.25rem 1.5rem;margin-bottom:1rem}
+
+/* ── Form ── */
+label{font-size:13px;color:var(--tx2);display:block;margin-bottom:6px}
+input,select,textarea{width:100%;padding:9px 12px;border:1px solid var(--br2);border-radius:var(--r);background:var(--bg);color:var(--tx);font-size:13px;font-family:inherit;outline:none;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{border-color:#378add}
+textarea{resize:vertical;line-height:1.6}
+.field{margin-bottom:1rem}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem}
+.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:1rem}
+@media(max-width:540px){.two,.three{grid-template-columns:1fr}}
+
+/* ── Buttons ── */
+.btn{padding:9px 18px;border-radius:var(--r);cursor:pointer;font-size:13px;font-family:inherit;border:1px solid var(--br2);background:var(--bg);color:var(--tx);transition:background .12s,opacity .12s}
+.btn:hover{background:var(--bg2)}
+.btn:active{opacity:.8}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-p{background:var(--tx);color:var(--bg);border-color:var(--tx);font-weight:500}
+.btn-p:hover{opacity:.88;background:var(--tx)}
+.btn-ok{background:var(--green-bg);color:var(--green-tx);border-color:var(--green-tx);font-weight:500}
+.btn-no{background:var(--red-bg);color:var(--red-tx);border-color:var(--red-tx);font-weight:500}
+.btn-sched{background:var(--purple-bg);color:var(--purple-tx);border-color:var(--purple-tx);font-weight:500}
+.btn-full{width:100%;padding:11px;font-size:14px}
+.brow{display:flex;gap:8px;margin-top:1rem;flex-wrap:wrap}
+.brow .btn{flex:1;min-width:100px}
+
+/* ── Spinner ── */
+.spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:rot .7s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes rot{to{transform:rotate(360deg)}}
+
+/* ── Pills ── */
+.pills{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:1rem}
+.pill{font-size:12px;padding:5px 13px;border-radius:999px;border:1px solid var(--br2);cursor:pointer;background:var(--bg);color:var(--tx2);transition:background .12s;user-select:none}
+.pill:hover{background:var(--bg2)}
+.pill.on{background:var(--bg3);color:var(--tx);border-color:var(--tx);font-weight:500}
+
+/* ── Tone grid ── */
+.tonegrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:1rem}
+@media(max-width:480px){.tonegrid{grid-template-columns:1fr 1fr}}
+.tbtn{padding:8px 6px;font-size:12px;border:1px solid var(--br2);border-radius:var(--r);cursor:pointer;background:var(--bg);color:var(--tx2);text-align:center;transition:background .12s}
+.tbtn:hover{background:var(--bg2)}
+.tbtn.on{background:var(--bg3);color:var(--tx);border-color:var(--tx);font-weight:500}
+
+/* ── Trend cards ── */
+.tcard{border:1px solid var(--br);border-radius:var(--rl);padding:13px 15px;margin-bottom:8px;cursor:pointer;background:var(--bg);display:flex;align-items:flex-start;gap:11px;transition:background .12s,border-color .12s}
+.tcard:hover{background:var(--bg2)}
+.tcard.sel{border-color:#378add;background:var(--blue-bg)}
+.chk{width:19px;height:19px;border:1px solid var(--br2);border-radius:5px;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;font-size:11px;background:var(--bg)}
+.tcard.sel .chk{background:#378add;border-color:#378add;color:#fff}
+.tbody{flex:1}
+.ttitle{font-size:14px;font-weight:500;color:var(--tx);margin-bottom:5px;line-height:1.4}
+.tsummary{font-size:13px;color:var(--tx2);line-height:1.55}
+.tmeta{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px;align-items:center}
+.badge{font-size:11px;padding:3px 9px;border-radius:999px;font-weight:500}
+.b-src{background:var(--bg2);color:var(--tx2)}
+.b-hot{background:var(--red-bg);color:var(--red-tx)}
+.b-rising{background:var(--amber-bg);color:var(--amber-tx)}
+.b-new{background:var(--green-bg);color:var(--green-tx)}
+.b-sched{background:var(--purple-bg);color:var(--purple-tx)}
+.twhy{font-size:12px;color:var(--tx3);font-style:italic}
+
+/* ── Selection bar ── */
+.selbar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg2);border-radius:var(--r);margin-bottom:1rem;font-size:13px;border:1px solid var(--br)}
+
+/* ── Review cards ── */
+.rcard{border:1px solid var(--br);border-radius:var(--rl);padding:1.25rem 1.5rem;margin-bottom:1rem;background:var(--bg);transition:border-color .15s,opacity .15s}
+.rcard.approved{border-color:#5dcaa5}
+.rcard.rejected{opacity:.45}
+.rcard.scheduled-card{border-color:var(--purple-tx)}
+.rtop{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;gap:10px}
+.rtopic{font-size:13px;font-weight:500;color:var(--tx);flex:1}
+.vbadge{font-size:11px;padding:3px 9px;border-radius:999px;font-weight:500;flex-shrink:0}
+.vb-app{background:var(--green-bg);color:var(--green-tx)}
+.vb-rej{background:var(--red-bg);color:var(--red-tx)}
+.vb-sch{background:var(--purple-bg);color:var(--purple-tx)}
+.peditor{width:100%;min-height:170px;padding:11px 13px;border:1px solid var(--br2);border-radius:var(--r);background:var(--bg2);color:var(--tx);font-size:13px;font-family:inherit;line-height:1.7;resize:vertical;margin-bottom:8px}
+.peditor:focus{border-color:#378add;background:var(--bg)}
+.charcount{font-size:12px;color:var(--tx3);text-align:right;margin-bottom:10px}
+.charcount.warn{color:var(--red-tx)}
+
+/* ── Schedule picker (inside review card) ── */
+.sched-picker{border:1px dashed var(--purple-tx);border-radius:var(--r);padding:12px;margin-bottom:10px;background:var(--purple-bg);display:none}
+.sched-picker.open{display:block}
+.sched-picker label{color:var(--purple-tx)}
+.sched-row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+.sched-row input{flex:1;min-width:140px}
+
+/* ── Metrics ── */
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:1.5rem}
+@media(max-width:480px){.metrics{grid-template-columns:1fr 1fr}}
+.metric{background:var(--bg2);border-radius:var(--r);padding:14px;text-align:center}
+.metric-v{font-size:24px;font-weight:600;color:var(--tx)}
+.metric-l{font-size:12px;color:var(--tx2);margin-top:3px}
+
+/* ── Publish list ── */
+.pitem{border:1px solid var(--green-tx);border-radius:var(--rl);padding:12px 15px;margin-bottom:8px;background:var(--bg)}
+.pitem-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+.pitem-title{font-size:13px;font-weight:500}
+.pitem-exc{font-size:13px;color:var(--tx2);line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ps{font-size:12px;padding:3px 9px;border-radius:999px;font-weight:500}
+.ps-p{background:var(--bg3);color:var(--tx2)}
+.ps-pub{background:var(--green-bg);color:var(--green-tx)}
+.ps-fail{background:var(--red-bg);color:var(--red-tx)}
+
+/* ── Calendar ── */
+.cal-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;gap:12px;flex-wrap:wrap}
+.cal-title{font-size:17px;font-weight:600}
+.cal-nav{display:flex;gap:6px}
+.day-hdrs{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
+.day-hdr{font-size:11px;color:var(--tx3);text-align:center;padding:4px 0;font-weight:500}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.calday{min-height:72px;border:1px solid var(--br);border-radius:var(--r);padding:5px;background:var(--bg);cursor:pointer;transition:background .12s}
+.calday:hover{background:var(--bg2)}
+.calday.other{opacity:.3}
+.calday.today{border-color:#378add}
+.calday.has-posts{background:var(--bg)}
+.dn{font-size:11px;color:var(--tx3);margin-bottom:3px;font-weight:500}
+.calday.today .dn{color:#378add;font-weight:600}
+.pdot{font-size:10px;padding:2px 5px;border-radius:4px;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;line-height:1.3}
+.pdot-sch{background:var(--purple-bg);color:var(--purple-tx)}
+.pdot-pub{background:var(--green-bg);color:var(--green-tx)}
+.pdot-fail{background:var(--red-bg);color:var(--red-tx)}
+.more-dot{font-size:10px;color:var(--tx3)}
+
+/* ── Scheduled posts list ── */
+.slist-item{border:1px solid var(--br);border-radius:var(--rl);padding:12px 15px;margin-bottom:8px;background:var(--bg)}
+.sli-hd{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;gap:10px}
+.sli-topic{font-size:13px;font-weight:500;flex:1}
+.sli-meta{font-size:12px;color:var(--tx2);margin-bottom:6px}
+.sli-exc{font-size:13px;color:var(--tx2);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:8px}
+.sli-actions{display:flex;gap:6px;flex-wrap:wrap}
+.sli-actions .btn{font-size:12px;padding:5px 12px}
+
+/* ── Day modal (faux overlay) ── */
+.modal-wrap{min-height:300px;background:rgba(0,0,0,.45);display:none;align-items:flex-start;justify-content:center;padding:2rem 1rem;border-radius:var(--rl)}
+.modal-wrap.open{display:flex}
+.modal{background:var(--bg);border-radius:var(--rl);padding:1.5rem;width:100%;max-width:520px;border:1px solid var(--br2)}
+.modal h3{font-size:16px;font-weight:600;margin-bottom:1rem}
+.modal-posts{max-height:320px;overflow-y:auto}
+
+/* ── Misc ── */
+.divider{border:none;border-top:1px solid var(--br);margin:1.5rem 0}
+.empty{text-align:center;padding:2.5rem 1rem;color:var(--tx3);font-size:13px}
+.msg{font-size:13px;padding:10px 14px;border-radius:var(--r);margin-top:10px}
+.msg-ok{background:var(--green-bg);color:var(--green-tx)}
+.msg-err{background:var(--red-bg);color:var(--red-tx)}
+.msg-info{background:var(--blue-bg);color:var(--blue-tx)}
+.hint{font-size:11px;color:var(--tx3);margin-top:4px}
+.stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:1rem}
+.stat-card{background:var(--bg2);border-radius:var(--r);padding:14px;text-align:center}
+.stat-val{font-size:22px;font-weight:600;color:var(--tx)}
+.stat-lbl{font-size:12px;color:var(--tx2);margin-top:2px}
+.stat-card.highlight{background:var(--blue-bg)}
+.stat-card.highlight .stat-val{color:var(--blue-tx)}
+.apost-item{border:1px solid var(--br);border-radius:var(--rl);padding:12px 15px;margin-bottom:10px;background:var(--bg)}
+.apost-hd{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;gap:10px}
+.apost-title{font-size:13px;font-weight:500;flex:1}
+.apost-date{font-size:11px;color:var(--tx3);flex-shrink:0}
+.img-drop{border:1.5px dashed var(--br2);border-radius:var(--r);padding:20px;text-align:center;cursor:pointer;background:var(--bg2);transition:background .15s;margin-bottom:10px}
+.img-drop:hover,.img-drop.drag{background:var(--blue-bg);border-color:var(--blue-tx)}
+.img-drop p{font-size:13px;color:var(--tx2);margin-top:6px}
+.img-preview{width:100%;max-height:200px;object-fit:contain;border-radius:var(--r);margin-top:8px;display:none}
+
+
+
+
+
+
+
+
+
+.tag-pill{display:inline-block;font-size:12px;padding:4px 11px;border-radius:999px;background:var(--blue-bg);color:var(--blue-tx);cursor:pointer;border:1px solid transparent;margin:3px 3px 3px 0;transition:background .12s}
+.tag-pill:hover{background:var(--blue-tx);color:var(--bg)}
+.tag-pill.added{background:var(--green-bg);color:var(--green-tx);border-color:var(--green-tx)}
+.tag-row{display:flex;flex-wrap:wrap;margin-top:8px;min-height:0}
+.fetch-log{font-size:12px;color:var(--tx3);text-align:center;padding:8px 0;min-height:22px}
+.sec-title{font-size:15px;font-weight:600;margin-bottom:1rem}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<div class="hd">
+  <div>
+    <h1>LinkedIn AI Post Studio</h1>
+    <p>Fetch AI trends · draft · schedule · publish</p>
+  </div>
+</div>
+
+<div id="key-warn" class="key-warn" style="display:none">
+  ⚠️ ANTHROPIC_API_KEY not set. Add it to your <code>.env</code> file and restart the server.
+</div>
+
+<!-- Main nav -->
+<div class="mainnav">
+  <button class="navbtn active" id="nav-0" onclick="goNav(0)"><span class="nb-num">Step 1</span><span class="nb-lbl">Fetch</span></button>
+  <button class="navbtn"        id="nav-1" onclick="goNav(1)"><span class="nb-num">Step 2</span><span class="nb-lbl">Pick</span></button>
+  <button class="navbtn"        id="nav-2" onclick="goNav(2)"><span class="nb-num">Step 3</span><span class="nb-lbl">Review</span></button>
+  <button class="navbtn"        id="nav-3" onclick="goNav(3)"><span class="nb-num">Step 4</span><span class="nb-lbl">Publish</span></button>
+  <button class="navbtn" id="nav-topic" onclick="goNav('topic')" style="flex:0 0 auto;padding:12px 18px;font-weight:500;color:var(--blue-tx);background:var(--blue-bg)"><span class="nb-lbl">🔍 Custom topic</span></button>
+  <button class="navbtn" id="nav-analytics" onclick="goNav('analytics')" style="flex:0 0 auto;padding:12px 18px;font-weight:500;color:var(--green-tx);background:var(--green-bg)"><span class="nb-lbl">📊 Analytics</span></button>
+  <button class="navbtn cal-btn" id="nav-cal" onclick="goNav('cal')"><span class="nb-lbl">📅 Calendar</span></button>
+</div>
+
+<!-- ══ STEP 1 ══ -->
+<div class="sec active" id="sec-0">
+  <div class="card">
+    <div class="field"><label>Your niche / angle</label>
+      <input type="text" id="niche" value="AI tools and technology" placeholder="e.g. AI engineer, SaaS founder, ML researcher..."/>
+    </div>
+    <div class="field"><label>Topic categories to track</label>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:6px;font-weight:500;letter-spacing:.4px;text-transform:uppercase">AI &amp; Technology</div>
+      <div class="pills" id="cat-row" style="margin-bottom:10px">
+        <span class="pill on" onclick="togglePill(this)">AI models &amp; releases</span>
+        <span class="pill on" onclick="togglePill(this)">AI tools &amp; products</span>
+        <span class="pill on" onclick="togglePill(this)">AI industry news</span>
+        <span class="pill"    onclick="togglePill(this)">AI research papers</span>
+        <span class="pill"    onclick="togglePill(this)">AI policy &amp; regulation</span>
+        <span class="pill"    onclick="togglePill(this)">AI startups &amp; funding</span>
+        <span class="pill"    onclick="togglePill(this)">Prompt engineering</span>
+        <span class="pill"    onclick="togglePill(this)">AI in business</span>
+      </div>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:6px;font-weight:500;letter-spacing:.4px;text-transform:uppercase">Chemistry &amp; Computational Science</div>
+      <div class="pills" style="margin-bottom:10px">
+        <span class="pill" onclick="togglePill(this)">Chemistry news</span>
+        <span class="pill" onclick="togglePill(this)">Chemical research papers</span>
+        <span class="pill" onclick="togglePill(this)">Chemoinformatics</span>
+        <span class="pill" onclick="togglePill(this)">Computational chemistry</span>
+        <span class="pill" onclick="togglePill(this)">Drug discovery</span>
+      </div>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:6px;font-weight:500;letter-spacing:.4px;text-transform:uppercase">Pharma &amp; Life Sciences</div>
+      <div class="pills" style="margin-bottom:10px">
+        <span class="pill" onclick="togglePill(this)">Pharma news</span>
+        <span class="pill" onclick="togglePill(this)">Pharma research</span>
+        <span class="pill" onclick="togglePill(this)">Clinical trials</span>
+        <span class="pill" onclick="togglePill(this)">Regulatory &amp; FDA</span>
+      </div>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:6px;font-weight:500;letter-spacing:.4px;text-transform:uppercase">Patents, IP &amp; Legal</div>
+      <div class="pills" style="margin-bottom:10px">
+        <span class="pill" onclick="togglePill(this)">Patents</span>
+        <span class="pill" onclick="togglePill(this)">IP &amp; intellectual property</span>
+        <span class="pill" onclick="togglePill(this)">Legal &amp; compliance</span>
+      </div>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:6px;font-weight:500;letter-spacing:.4px;text-transform:uppercase">Cybersecurity</div>
+      <div class="pills" style="margin-bottom:10px">
+        <span class="pill" onclick="togglePill(this)">Cybersecurity news</span>
+        <span class="pill" onclick="togglePill(this)">Cyber threats &amp; attacks</span>
+        <span class="pill" onclick="togglePill(this)">Security research</span>
+        <span class="pill" onclick="togglePill(this)">Vulnerability &amp; CVE</span>
+        <span class="pill" onclick="togglePill(this)">AI &amp; cybersecurity</span>
+      </div>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:6px;font-weight:500;letter-spacing:.4px;text-transform:uppercase">Cloud — AWS · Azure · GCP</div>
+      <div class="pills" style="margin-bottom:10px">
+        <span class="pill" onclick="togglePill(this)">AWS news</span>
+        <span class="pill" onclick="togglePill(this)">Azure news</span>
+        <span class="pill" onclick="togglePill(this)">GCP news</span>
+        <span class="pill" onclick="togglePill(this)">Cloud security</span>
+        <span class="pill" onclick="togglePill(this)">Cloud storage &amp; infra</span>
+        <span class="pill" onclick="togglePill(this)">Cloud computing</span>
+      </div>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:6px;font-weight:500;letter-spacing:.4px;text-transform:uppercase">GRC — Governance, Risk &amp; Compliance</div>
+      <div class="pills" style="margin-bottom:10px">
+        <span class="pill" onclick="togglePill(this)">GRC news</span>
+        <span class="pill" onclick="togglePill(this)">Governance &amp; risk</span>
+        <span class="pill" onclick="togglePill(this)">Data privacy &amp; compliance</span>
+        <span class="pill" onclick="togglePill(this)">NIST &amp; frameworks</span>
+      </div>
+    </div>
+    <div class="field"><label>Post tone</label>
+      <div class="tonegrid">
+        <div class="tbtn on"  onclick="selTone(this,'Conversational & authentic')">Conversational</div>
+        <div class="tbtn"     onclick="selTone(this,'Thought leadership & insightful')">Thought leadership</div>
+        <div class="tbtn"     onclick="selTone(this,'Storytelling & personal')">Storytelling</div>
+        <div class="tbtn"     onclick="selTone(this,'Practical how-to tips')">How-to tips</div>
+        <div class="tbtn"     onclick="selTone(this,'Bold & contrarian take')">Contrarian</div>
+        <div class="tbtn"     onclick="selTone(this,'Inspirational & forward-looking')">Inspirational</div>
+      </div>
+    </div>
+    <div class="two">
+      <div><label>Post length</label>
+        <select id="post-length">
+          <option value="short">Short (&lt;300 chars)</option>
+          <option value="medium" selected>Medium (300–800)</option>
+          <option value="long">Long-form (800–1500)</option>
+        </select>
+      </div>
+      <div><label>Trends to fetch</label>
+        <select id="trend-count">
+          <option value="6">6 trends</option>
+          <option value="8" selected>8 trends</option>
+          <option value="10">10 trends</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>Additional sources</label>
+      <div class="pills" id="source-toggles">
+        <span class="pill on"  id="src-rss"     onclick="togglePill(this)">📰 RSS feeds</span>
+        <span class="pill"     id="src-trends"  onclick="togglePill(this)">📈 Google Trends</span>
+        <span class="pill"     id="src-twitter" onclick="togglePill(this)">🐦 Twitter/X</span>
+      </div>
+      <p style="font-size:11px;color:var(--tx3);margin-top:4px">RSS = TechCrunch, The Verge, VentureBeat, MIT Tech Review, Wired, ArXiv (always on) · Google Trends requires: <code>uv pip install pytrends --system</code></p>
+    </div>
+
+    <button class="btn btn-p btn-full" id="fetch-btn" onclick="fetchTrends()">Fetch latest AI trends</button>
+    <div class="fetch-log" id="fetch-log"></div>
+    <div id="cache-bar" style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding:9px 13px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);font-size:12px;color:var(--tx2)">
+      <span id="cache-info">Seen cache: loading…</span>
+      <button class="btn" style="font-size:12px;padding:5px 12px;color:var(--red-tx);border-color:var(--red-tx)" onclick="clearSeenCache()">Clear seen cache</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ STEP 2 ══ -->
+<div class="sec" id="sec-1">
+  <div class="selbar">
+    <span>Select the topics you want to post about</span>
+    <span id="sel-count" style="font-weight:500">0 selected</span>
+  </div>
+  <div id="trend-list"></div>
+  <button class="btn btn-p btn-full" id="draft-btn" onclick="draftPosts()" disabled>Select topics to continue</button>
+</div>
+
+<!-- ══ STEP 3 ══ -->
+<div class="sec" id="sec-2">
+  <p style="font-size:13px;color:var(--tx2);margin-bottom:1rem;line-height:1.6">
+    Edit drafts inline. <strong>Approve</strong> to publish now, <strong>Schedule</strong> to pick a date/time, or <strong>Reject</strong> to skip.
+  </p>
+
+  <!-- LinkedIn creds (needed for scheduling) -->
+  <div class="card" style="margin-bottom:1rem">
+    <p style="font-size:13px;font-weight:500;margin-bottom:10px">LinkedIn credentials (for scheduling &amp; direct publish)</p>
+    <div class="two">
+      <div><label>Access token</label><input type="password" id="r-token" placeholder="AQV..."/></div>
+      <div><label>Member URN</label><input type="text" id="r-urn" placeholder="urn:li:person:XXXX"/></div>
+    </div>
+  </div>
+
+  <div id="review-list"></div>
+  <div class="brow">
+    <button class="btn" onclick="goNav(1)">← Back</button>
+    <button class="btn btn-p" id="to-publish" onclick="goToPublish()">Continue to publish →</button>
+  </div>
+</div>
+
+<!-- ══ STEP 4 ══ -->
+<div class="sec" id="sec-3">
+  <div class="metrics">
+    <div class="metric"><div class="metric-v" id="sum-app">0</div><div class="metric-l">Approved</div></div>
+    <div class="metric"><div class="metric-v" id="sum-sch">0</div><div class="metric-l">Scheduled</div></div>
+    <div class="metric"><div class="metric-v" id="sum-rej">0</div><div class="metric-l">Rejected</div></div>
+    <div class="metric"><div class="metric-v" id="sum-tot">0</div><div class="metric-l">Total</div></div>
+  </div>
+
+  <div id="publish-list"></div>
+
+  <div class="card" style="margin-top:1rem">
+    <div class="sec-title">Publish approved posts now</div>
+    <p style="font-size:13px;color:var(--tx2);margin-bottom:1rem">Credentials pre-filled from Step 3 — update if needed.</p>
+    <div class="two">
+      <div><label>LinkedIn access token</label><input type="password" id="p-token" placeholder="AQV..."/></div>
+      <div><label>Member URN</label><input type="text" id="p-urn" placeholder="urn:li:person:XXXX"/><p class="hint">Profile page source → search "currentMember"</p></div>
+    </div>
+    <button class="btn btn-p btn-full" id="pub-btn" onclick="publishAll()">Publish all approved posts to LinkedIn</button>
+    <div id="pub-msg"></div>
+  </div>
+
+  <div class="divider"></div>
+  <button class="btn btn-full" onclick="copyAll()" style="margin-bottom:8px">Copy all approved posts to clipboard</button>
+  <button class="btn btn-full" onclick="window.open('https://www.linkedin.com/feed/','_blank')">Open LinkedIn in browser ↗</button>
+  <div id="copy-msg" class="msg msg-ok" style="display:none;text-align:center">Copied!</div>
+</div>
+
+<!-- ══ CUSTOM TOPIC SEARCH ══ -->
+<div class="sec" id="sec-topic">
+  <div class="card">
+    <div style="margin-bottom:1rem">
+      <p style="font-size:15px;font-weight:600;margin-bottom:4px">Custom topic search</p>
+      <p style="font-size:13px;color:var(--tx2)">Enter any topic — the app scrapes news articles and research papers, lets you pick what to include, then drafts a post.</p>
+    </div>
+    <div class="field">
+      <label>Topic</label>
+      <input type="text" id="topic-input" placeholder="e.g. OpenAI Sora, AI agents in healthcare, LLM fine-tuning..." />
+    </div>
+    <div class="two">
+      <div>
+        <label>Source type</label>
+        <select id="topic-source">
+          <option value="all">News + Research papers</option>
+          <option value="news">News articles only</option>
+          <option value="research">Research papers only</option>
+        </select>
+      </div>
+      <div>
+        <label>Number of results</label>
+        <select id="topic-count">
+          <option value="8">8 results</option>
+          <option value="12" selected>12 results</option>
+          <option value="16">16 results</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-p btn-full" id="topic-search-btn" onclick="searchTopic()">Search the web</button>
+    <div class="fetch-log" id="topic-log"></div>
+  </div>
+
+  <!-- Results picker -->
+  <div id="topic-results-wrap" style="display:none">
+    <div class="selbar">
+      <span>Select sources to include in your post</span>
+      <span id="topic-sel-count" style="font-weight:500">0 selected</span>
+    </div>
+    <div id="topic-results-list"></div>
+
+    <!-- Draft config -->
+    <div class="card" style="margin-top:1rem">
+      <p style="font-size:14px;font-weight:500;margin-bottom:12px">Post settings</p>
+      <div class="two">
+        <div>
+          <label>Tone</label>
+          <select id="topic-tone">
+            <option value="Conversational & authentic">Conversational</option>
+            <option value="Thought leadership & insightful">Thought leadership</option>
+            <option value="Storytelling & personal">Storytelling</option>
+            <option value="Practical how-to tips">How-to tips</option>
+            <option value="Bold & contrarian take">Contrarian</option>
+            <option value="Inspirational & forward-looking">Inspirational</option>
+          </select>
+        </div>
+        <div>
+          <label>Length</label>
+          <select id="topic-length">
+            <option value="short">Short (&lt;300 chars)</option>
+            <option value="medium" selected>Medium (300–800)</option>
+            <option value="long">Long-form (800–1500)</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Custom angle / instruction (optional)</label>
+        <input type="text" id="topic-angle" placeholder="e.g. focus on implications for indie developers, write from a skeptic's view..." />
+      </div>
+      <button class="btn btn-p btn-full" id="topic-draft-btn" onclick="draftFromTopic()" disabled>Generate post from selected sources</button>
+    </div>
+
+    <!-- Draft output -->
+    <div id="topic-draft-wrap" style="display:none;margin-top:1rem">
+      <div class="card">
+        <p style="font-size:14px;font-weight:500;margin-bottom:10px">Your draft</p>
+        <textarea class="peditor" id="topic-draft-editor" style="min-height:200px" oninput="updateTopicCC()"></textarea>
+        <div class="charcount" id="topic-cc">0 / 3000</div>
+
+        <!-- LinkedIn preview -->
+        <div style="border:1px solid var(--br);border-radius:var(--rl);padding:1rem 1.25rem;margin-top:1rem">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <div style="width:40px;height:40px;border-radius:50%;background:var(--blue-bg);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:var(--blue-tx);flex-shrink:0">YN</div>
+            <div>
+              <div style="font-size:14px;font-weight:500">Your Name</div>
+              <div style="font-size:12px;color:var(--tx2)">Personal brand · Just now</div>
+            </div>
+          </div>
+          <div id="topic-preview" style="font-size:14px;line-height:1.7;white-space:pre-wrap;word-break:break-word;color:var(--tx)">Your post preview will appear here.</div>
+        </div>
+
+        <!-- Credentials -->
+        <div class="two" style="margin-top:1rem">
+          <div><label>LinkedIn access token</label><input type="password" id="topic-token" placeholder="AQV..."/></div>
+          <div><label>Member URN</label><input type="text" id="topic-urn" placeholder="urn:li:person:XXXX"/></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:.5rem;flex-wrap:wrap">
+          <button class="btn btn-secondary" style="flex:1" onclick="regenTopicPost()">↻ Regenerate</button>
+          <button class="btn btn-sched" style="flex:1" onclick="scheduleTopicPost()">📅 Schedule</button>
+          <button class="btn btn-p" style="flex:1" onclick="publishTopicPost()">🚀 Publish now</button>
+        </div>
+        <div class="sched-picker" id="topic-sched-picker" style="margin-top:10px">
+          <label style="margin-bottom:8px;font-weight:500">Pick date &amp; time</label>
+          <div class="sched-row">
+            <div style="flex:1"><label>Date</label><input type="date" id="topic-sched-date"/></div>
+            <div style="flex:1"><label>Time</label><input type="time" id="topic-sched-time" value="09:00"/></div>
+            <button class="btn btn-sched" onclick="confirmTopicSchedule()">Confirm</button>
+          </div>
+        </div>
+        <div id="topic-pub-msg" style="margin-top:10px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CUSTOM TOPIC SEARCH ══ -->
+<div class="sec" id="sec-topic">
+  <div class="card">
+    <div style="margin-bottom:1rem">
+      <p style="font-size:15px;font-weight:600;margin-bottom:4px">Custom topic search</p>
+      <p style="font-size:13px;color:var(--tx2)">Enter any topic — scrapes news and research papers, pick sources, generate and publish your post.</p>
+    </div>
+    <div class="field"><label>Topic</label>
+      <input type="text" id="topic-input" placeholder="e.g. OpenAI Sora, AI agents in healthcare, LLM fine-tuning..."/>
+    </div>
+    <div class="two">
+      <div><label>Source type</label>
+        <select id="topic-source">
+          <option value="all">News + Research papers</option>
+          <option value="news">News articles only</option>
+          <option value="research">Research papers only</option>
+        </select>
+      </div>
+      <div><label>Results to fetch</label>
+        <select id="topic-count">
+          <option value="8">8 results</option>
+          <option value="12" selected>12 results</option>
+          <option value="16">16 results</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-p btn-full" id="topic-search-btn" onclick="searchTopic()">Search the web</button>
+    <div class="fetch-log" id="topic-log"></div>
+  </div>
+
+  <div id="topic-results-wrap" style="display:none">
+    <div class="selbar">
+      <span>Select sources to include in your post</span>
+      <span id="topic-sel-count" style="font-weight:500">0 selected</span>
+    </div>
+    <div id="topic-results-list"></div>
+
+    <div class="card" style="margin-top:1rem">
+      <p style="font-size:14px;font-weight:500;margin-bottom:12px">Post settings</p>
+      <div class="two">
+        <div><label>Tone</label>
+          <select id="topic-tone">
+            <option value="Conversational & authentic">Conversational</option>
+            <option value="Thought leadership & insightful">Thought leadership</option>
+            <option value="Storytelling & personal">Storytelling</option>
+            <option value="Practical how-to tips">How-to tips</option>
+            <option value="Bold & contrarian take">Contrarian</option>
+            <option value="Inspirational & forward-looking">Inspirational</option>
+          </select>
+        </div>
+        <div><label>Length</label>
+          <select id="topic-length">
+            <option value="short">Short (&lt;300 chars)</option>
+            <option value="medium" selected>Medium (300-800)</option>
+            <option value="long">Long-form (800-1500)</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Custom angle (optional)</label>
+        <input type="text" id="topic-angle" placeholder="e.g. focus on indie devs, write from a skeptic's view..."/>
+      </div>
+      <button class="btn btn-p btn-full" id="topic-draft-btn" onclick="draftFromTopic()" disabled>Generate post from selected sources</button>
+    </div>
+
+    <div id="topic-draft-wrap" style="display:none;margin-top:1rem">
+      <div class="card">
+        <p style="font-size:14px;font-weight:500;margin-bottom:10px">Your draft</p>
+        <textarea class="peditor" id="topic-draft-editor" style="min-height:200px" oninput="updateTopicCC()"></textarea>
+        <div class="charcount" id="topic-cc">0 / 3000</div>
+        <div style="margin-bottom:10px">
+          <label style="font-size:12px;color:var(--tx3)">Suggested hashtags — click to append</label>
+          <div class="tag-row" id="topic-tag-row"></div>
+        </div>
+        <div style="border:1px solid var(--br);border-radius:var(--rl);padding:1rem 1.25rem;margin-top:1rem">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <div style="width:40px;height:40px;border-radius:50%;background:var(--blue-bg);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:var(--blue-tx);flex-shrink:0">YN</div>
+            <div><div style="font-size:14px;font-weight:500">Your Name</div><div style="font-size:12px;color:var(--tx2)">Just now</div></div>
+          </div>
+          <div id="topic-preview" style="font-size:14px;line-height:1.7;white-space:pre-wrap;word-break:break-word;color:var(--tx)">Preview appears here.</div>
+        </div>
+        <div class="two" style="margin-top:1rem">
+          <div><label>Access token</label><input type="password" id="topic-token" placeholder="AQV..."/></div>
+          <div><label>Member URN</label><input type="text" id="topic-urn" placeholder="urn:li:person:XXXX"/></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:.5rem;flex-wrap:wrap">
+          <button class="btn" style="flex:1" onclick="regenTopicPost()">Regenerate</button>
+          <button class="btn btn-sched" style="flex:1" onclick="toggleTopicSched()">Schedule</button>
+          <button class="btn btn-p" style="flex:1" onclick="publishTopicPost()">Publish now</button>
+        </div>
+        <div id="topic-sched-picker" style="display:none;margin-top:10px;padding:12px;border:1px dashed var(--purple-tx);border-radius:var(--r);background:var(--purple-bg)">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+            <div style="flex:1"><label>Date</label><input type="date" id="topic-sched-date"/></div>
+            <div style="flex:1"><label>Time</label><input type="time" id="topic-sched-time" value="09:00"/></div>
+            <button class="btn btn-sched" onclick="confirmTopicSchedule()">Confirm</button>
+          </div>
+        </div>
+        <div id="topic-pub-msg" style="margin-top:10px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ANALYTICS ══ -->
+<div class="sec" id="sec-analytics">
+  <div class="card" style="margin-bottom:1rem">
+    <p style="font-size:15px;font-weight:600;margin-bottom:4px">Post analytics</p>
+    <p style="font-size:13px;color:var(--tx2);margin-bottom:1rem">Fetch performance data for your published posts. Requires <code>r_member_social</code> scope on your token.</p>
+    <div class="two">
+      <div><label>Access token</label><input type="password" id="an-token" placeholder="AQV..."/></div>
+      <div><label>Post URN (optional — leave blank for all posts)</label><input type="text" id="an-urn" placeholder="urn:li:share:123456 or urn:li:ugcPost:123456"/></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-p" style="flex:1" id="an-single-btn" onclick="fetchSingleAnalytics()">Fetch for this post</button>
+      <button class="btn" style="flex:1" id="an-all-btn" onclick="fetchAllAnalytics()">Fetch all published posts</button>
+    </div>
+    <div id="an-msg" style="font-size:13px;margin-top:10px"></div>
+  </div>
+
+  <!-- Single post stats -->
+  <div id="an-single-wrap" style="display:none;margin-bottom:1rem">
+    <p style="font-size:14px;font-weight:500;margin-bottom:10px">Post performance</p>
+    <div class="stat-grid">
+      <div class="stat-card highlight"><div class="stat-val" id="an-impressions">—</div><div class="stat-lbl">Impressions</div></div>
+      <div class="stat-card"><div class="stat-val" id="an-clicks">—</div><div class="stat-lbl">Clicks</div></div>
+      <div class="stat-card"><div class="stat-val" id="an-likes">—</div><div class="stat-lbl">Likes</div></div>
+      <div class="stat-card"><div class="stat-val" id="an-comments">—</div><div class="stat-lbl">Comments</div></div>
+      <div class="stat-card"><div class="stat-val" id="an-shares">—</div><div class="stat-lbl">Shares</div></div>
+      <div class="stat-card highlight"><div class="stat-val" id="an-engrate">—</div><div class="stat-lbl">Engagement rate</div></div>
+    </div>
+  </div>
+
+  <!-- All posts analytics table -->
+  <div id="an-all-wrap" style="display:none">
+    <p style="font-size:14px;font-weight:500;margin-bottom:10px">All published posts</p>
+    <div id="an-all-list"></div>
+  </div>
+</div>
+
+<!-- ══ CALENDAR ══ -->
+<div class="sec" id="sec-cal">
+
+  <div class="cal-toolbar">
+    <div>
+      <div class="cal-title" id="cal-title">March 2025</div>
+      <div style="font-size:12px;color:var(--tx3);margin-top:2px">Scheduled posts auto-publish at their set time</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <div class="cal-nav">
+        <button class="btn" onclick="changeMonth(-1)">‹</button>
+        <button class="btn" onclick="changeMonth(1)">›</button>
+      </div>
+      <button class="btn" onclick="changeMonth(0)">Today</button>
+    </div>
+  </div>
+
+  <div class="day-hdrs" id="day-hdrs"></div>
+  <div class="cal-grid" id="cal-grid"></div>
+
+  <div class="divider"></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <span class="sec-title" style="margin-bottom:0">All scheduled posts</span>
+    <button class="btn" style="font-size:12px;padding:6px 12px" onclick="loadCalendar()">↻ Refresh</button>
+  </div>
+  <div id="sched-list"></div>
+</div>
+
+<!-- Day detail modal -->
+<div class="modal-wrap" id="day-modal">
+  <div class="modal">
+    <h3 id="modal-date"></h3>
+    <div class="modal-posts" id="modal-posts"></div>
+    <div class="brow" style="margin-top:1rem">
+      <button class="btn" onclick="closeModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- /shell -->
+
+<script>
+const S={
+  tone:   'Conversational & authentic',
+  trends: [],
+  posts:  [],
+  calYear: new Date().getFullYear(),
+  calMonth: new Date().getMonth(),
+  schedPosts: [],
+};
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+async function api(path,body,method='POST'){
+  const opts={method,headers:{'Content-Type':'application/json'}};
+  if(body!=null) opts.body=JSON.stringify(body);
+  const r=await fetch(path,opts);
+  return r.json();
+}
+
+function goNav(n){
+  const navIds=['nav-0','nav-1','nav-2','nav-3','nav-topic','nav-cal'];
+  navIds.forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove('active');});
+  const activeId=n==='cal'?'nav-cal':n==='topic'?'nav-topic':'nav-'+n;
+  const activeEl=document.getElementById(activeId);if(activeEl)activeEl.classList.add('active');
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));
+  document.getElementById('sec-'+n).classList.add('active');
+  if(n==='cal') loadCalendar();
+  if(n==='analytics') prefillAnalyticsToken();
+}
+
+function markDone(n){document.getElementById('nav-'+n).classList.add('done');}
+function togglePill(el){el.classList.toggle('on');}
+function selTone(el,t){document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('on'));el.classList.add('on');S.tone=t;}
+function selectedCats(){return[...document.querySelectorAll('#sec-0 .pill.on')].map(p=>p.textContent.trim().replace(/&/g,'&').replace(/amp;/g,''));}
+
+function setBtn(id,html,dis=false){const el=document.getElementById(id);el.innerHTML=html;el.disabled=dis;}
+
+function fmtDateTime(iso){
+  if(!iso) return '—';
+  const d=new Date(iso);
+  return d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+}
+function fmtDate(iso){
+  const d=new Date(iso);
+  return d.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+}
+
+// ── Step 1 ── Fetch trends ────────────────────────────────────────────────────
+
+async function fetchTrends(){
+  const log=document.getElementById('fetch-log');
+  log.textContent='Searching the web for latest AI trends…';
+  setBtn('fetch-btn','<span class="spin"></span>Scanning the web…',true);
+  const res=await api('/api/fetch-trends',{
+    niche:document.getElementById('niche').value.trim()||'AI tools and technology',
+    categories:selectedCats(),
+    count:parseInt(document.getElementById('trend-count').value),
+    use_rss:     document.getElementById('src-rss')    ?.classList.contains('on') ?? true,
+    use_trends:  document.getElementById('src-trends') ?.classList.contains('on') ?? false,
+    use_twitter: document.getElementById('src-twitter')?.classList.contains('on') ?? false,
+  });
+  setBtn('fetch-btn','Fetch latest AI trends',false);
+  loadCacheInfo();
+  if(!res.ok){log.textContent='Error: '+(res.error||'Unknown');return;}
+  log.textContent=`Found ${res.trends.length} trends.`;
+  S.trends=res.trends.map((t,i)=>({...t,id:i,selected:false}));
+  renderTrends();markDone(0);goNav(1);
+}
+
+// ── Step 2 ── Pick topics ─────────────────────────────────────────────────────
+
+function renderTrends(){
+  const list=document.getElementById('trend-list');list.innerHTML='';
+  S.trends.forEach(t=>{
+    const hc={hot:'b-hot',rising:'b-rising',new:'b-new'}[t.heat]||'b-src';
+    const div=document.createElement('div');
+    div.className='tcard'+(t.selected?' sel':'');
+    div.innerHTML=`<div class="chk">${t.selected?'✓':''}</div>
+    <div class="tbody">
+      <div class="ttitle">${t.title}</div>
+      <div class="tsummary">${t.summary}</div>
+      <div class="tmeta">
+        <span class="badge b-src">${t.source||'Web'}</span>
+        <span class="badge ${hc}">${t.heat||'new'}</span>
+        <span class="twhy">${t.why}</span>
+      </div>
+    </div>`;
+    div.onclick=()=>{t.selected=!t.selected;renderTrends();};
+    list.appendChild(div);
+  });
+  const n=S.trends.filter(t=>t.selected).length;
+  document.getElementById('sel-count').textContent=n+' selected';
+  const btn=document.getElementById('draft-btn');
+  btn.disabled=n===0;
+  btn.textContent=n>0?`Draft posts for ${n} topic${n>1?'s':''}  →`:'Select topics to continue';
+}
+
+// ── Step 3 ── Draft & review ──────────────────────────────────────────────────
+
+async function draftPosts(){
+  const sel=S.trends.filter(t=>t.selected);
+  if(!sel.length) return;
+  setBtn('draft-btn',`<span class="spin"></span>Drafting ${sel.length} post${sel.length>1?'s':''}…`,true);
+  S.posts=[];
+  for(const t of sel){
+    const res=await api('/api/draft-post',{
+      topic:t.title,summary:t.summary,why:t.why,
+      tone:S.tone,length:document.getElementById('post-length').value,
+    });
+    S.posts.push({id:t.id,topic:t.title,text:res.ok?res.text:'Could not generate. Try regenerating.',hashtags:res.ok?(res.hashtags||[]):[],verdict:null,schedTime:null});
+  }
+  renderReview();markDone(1);goNav(2);
+  setBtn('draft-btn',`Draft posts for ${sel.length} topic${sel.length>1?'s':''} →`,false);
+
+  // pre-fill credentials
+  const li=await api('/api/li-prefill',null,'GET').catch(()=>({}));
+  if(li.token){document.getElementById('r-token').value=li.token;document.getElementById('p-token').value=li.token;}
+  if(li.urn){document.getElementById('r-urn').value=li.urn;document.getElementById('p-urn').value=li.urn;}
+}
+
+function renderReview(){
+  const list=document.getElementById('review-list');list.innerHTML='';
+  S.posts.forEach((p,i)=>{
+    const cls=p.verdict==='approved'?' approved':p.verdict==='rejected'?' rejected':p.verdict==='scheduled'?' scheduled-card':'';
+    const vb=p.verdict?`<span class="vbadge ${p.verdict==='approved'?'vb-app':p.verdict==='rejected'?'vb-rej':'vb-sch'}">${p.verdict==='scheduled'?'Scheduled: '+fmtDateTime(p.schedTime):p.verdict}</span>`:'';
+    const div=document.createElement('div');div.className='rcard'+cls;div.id='rc-'+i;
+    div.innerHTML=`
+    <div class="rtop"><div class="rtopic">${p.topic}</div><div id="vb-${i}">${vb}</div></div>
+    <textarea class="peditor" id="pe-${i}" oninput="saveEdit(${i})" onchange="updateCC(${i})">${p.text}</textarea>
+    <div class="charcount" id="cc-${i}">${p.text.length} / 3000</div>
+    <div style="margin-bottom:8px">
+      <label style="font-size:12px;color:var(--tx3)">Suggested hashtags — click to append</label>
+      <div class="tag-row" id="tags-${i}">${(p.hashtags||[]).map((t,j)=>`<span class="tag-pill" onclick="appendHashtag(${i},'${t}',this)">${t}</span>`).join('')}</div>
+    </div>
+
+    <div class="sched-picker" id="sp-${i}">
+      <label style="margin-bottom:8px;font-weight:500">Pick schedule date &amp; time</label>
+      <div class="sched-row">
+        <div style="flex:1"><label>Date</label><input type="date" id="sd-${i}"/></div>
+        <div style="flex:1"><label>Time</label><input type="time" id="st-${i}" value="09:00"/></div>
+        <button class="btn btn-sched" onclick="confirmSchedule(${i})">Confirm</button>
+      </div>
+    </div>
+    <div style="margin-bottom:10px">
+      <label style="font-size:12px;color:var(--tx3)">Add image (optional)</label>
+      <div class="img-drop" id="img-drop-${i}" onclick="document.getElementById('img-file-${i}').click()"
+           ondragover="event.preventDefault();this.classList.add('drag')"
+           ondragleave="this.classList.remove('drag')"
+           ondrop="handleImgDrop(event,${i})">
+        <span style="font-size:18px">🖼</span>
+        <p>Click or drag &amp; drop an image (JPG/PNG, max 10MB)</p>
+        <input type="file" id="img-file-${i}" accept="image/*" style="display:none" onchange="handleImgSelect(${i},this)"/>
+        <img id="img-prev-${i}" class="img-preview"/>
+      </div>
+      <div id="img-status-${i}" style="font-size:12px;color:var(--tx3);margin-top:4px"></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-ok"    onclick="setVerdict(${i},'approved')">✓ Approve</button>
+      <button class="btn btn-sched" onclick="toggleSched(${i})">📅 Schedule</button>
+      <button class="btn btn-no"    onclick="setVerdict(${i},'rejected')">✗ Reject</button>
+      <button class="btn"           onclick="regenPost(${i})" style="margin-left:auto">↻ Regen</button>
+    </div>`;
+    list.appendChild(div);
+    // set default date to tomorrow
+    const tomorrow=new Date();tomorrow.setDate(tomorrow.getDate()+1);
+    document.getElementById('sd-'+i).value=tomorrow.toISOString().split('T')[0];
+  });
+}
+
+function saveEdit(i){S.posts[i].text=document.getElementById('pe-'+i).value;updateCC(i);}
+function updateCC(i){
+  const n=document.getElementById('pe-'+i).value.length;
+  const el=document.getElementById('cc-'+i);
+  el.textContent=n+' / 3000';el.className='charcount'+(n>2800?' warn':'');
+}
+function setVerdict(i,v){
+  S.posts[i].verdict=v;S.posts[i].schedTime=null;
+  const card=document.getElementById('rc-'+i);
+  card.className='rcard'+(v==='approved'?' approved':v==='rejected'?' rejected':'');
+  document.getElementById('vb-'+i).innerHTML=`<span class="vbadge ${v==='approved'?'vb-app':'vb-rej'}">${v}</span>`;
+  document.getElementById('sp-'+i).classList.remove('open');
+}
+function toggleSched(i){
+  const sp=document.getElementById('sp-'+i);sp.classList.toggle('open');
+}
+async function confirmSchedule(i){
+  const date=document.getElementById('sd-'+i).value;
+  const time=document.getElementById('st-'+i).value;
+  if(!date||!time){alert('Please pick a date and time.');return;}
+  const iso=date+'T'+time;
+  const token=document.getElementById('r-token').value.trim();
+  const urn=document.getElementById('r-urn').value.trim();
+  if(!token||!urn){alert('Please enter your LinkedIn access token and member URN above before scheduling.');return;}
+
+  const res=await api('/api/schedule-post',{token,urn,text:S.posts[i].text,topic:S.posts[i].topic,scheduled_at:iso});
+  if(!res.ok){alert('Scheduling failed: '+res.error);return;}
+
+  S.posts[i].verdict='scheduled';S.posts[i].schedTime=iso;
+  const card=document.getElementById('rc-'+i);
+  card.className='rcard scheduled-card';
+  document.getElementById('vb-'+i).innerHTML=`<span class="vbadge vb-sch">Scheduled: ${fmtDateTime(iso)}</span>`;
+  document.getElementById('sp-'+i).classList.remove('open');
+}
+async function regenPost(i){
+  const p=S.posts[i];const t=S.trends.find(x=>x.id===p.id)||{};
+  const ta=document.getElementById('pe-'+i);ta.value='Regenerating…';
+  const res=await api('/api/draft-post',{topic:p.topic,summary:t.summary||'',why:t.why||'',tone:S.tone,length:document.getElementById('post-length').value});
+  const txt=res.ok?res.text:'Could not regenerate.';
+  ta.value=txt;S.posts[i].text=txt;updateCC(i);
+}
+
+function goToPublish(){
+  const app=S.posts.filter(p=>p.verdict==='approved');
+  const sch=S.posts.filter(p=>p.verdict==='scheduled');
+  if(!app.length&&!sch.length){alert('Approve or schedule at least one post first.');return;}
+  markDone(2);renderPublish();goNav(3);
+  // sync creds
+  const rt=document.getElementById('r-token').value;const ru=document.getElementById('r-urn').value;
+  if(rt) document.getElementById('p-token').value=rt;
+  if(ru) document.getElementById('p-urn').value=ru;
+}
+
+// ── Step 4 ── Publish ─────────────────────────────────────────────────────────
+
+function renderPublish(){
+  const app=S.posts.filter(p=>p.verdict==='approved');
+  const sch=S.posts.filter(p=>p.verdict==='scheduled');
+  const rej=S.posts.filter(p=>p.verdict==='rejected');
+  document.getElementById('sum-app').textContent=app.length;
+  document.getElementById('sum-sch').textContent=sch.length;
+  document.getElementById('sum-rej').textContent=rej.length;
+  document.getElementById('sum-tot').textContent=S.posts.length;
+  const list=document.getElementById('publish-list');list.innerHTML='';
+  [...app,...sch].forEach(p=>{
+    const div=document.createElement('div');
+    const issch=p.verdict==='scheduled';
+    div.className='pitem';div.style.borderColor=issch?'var(--purple-tx)':'var(--green-tx)';div.id='pi-'+p.id;
+    div.innerHTML=`<div class="pitem-hd">
+      <span class="pitem-title">${p.topic}</span>
+      <span class="ps ${issch?'b-sched ps-p':'ps-p'}" id="ps-${p.id}">${issch?'Scheduled '+fmtDateTime(p.schedTime):'Approved'}</span>
+    </div>
+    <div class="pitem-exc">${p.text}</div>`;
+    list.appendChild(div);
+  });
+}
+
+async function publishAll(){
+  const token=document.getElementById('p-token').value.trim();
+  const urn=document.getElementById('p-urn').value.trim();
+  const approved=S.posts.filter(p=>p.verdict==='approved');
+  // Upload any pending images first
+  for(const p of approved){
+    const idx=S.posts.indexOf(p);
+    if(postImages[idx]?.file && !postImages[idx]?.assetUrn){
+      // Manual image takes priority
+      await uploadImageForPost(idx,token,urn);
+    }
+    p.assetUrn=postImages[idx]?.assetUrn||'';
+  }
+  const msg=document.getElementById('pub-msg');
+  if(!token||!urn){msg.className='msg msg-err';msg.textContent='Please enter your access token and member URN.';return;}
+  if(!approved.length){msg.className='msg msg-err';msg.textContent='No approved posts (scheduled posts will auto-publish at their time).';return;}
+  setBtn('pub-btn','<span class="spin"></span>Publishing…',true);msg.textContent='';
+  let ok=0,fail=0;
+  for(const p of approved){
+    const s=document.getElementById('ps-'+p.id);
+    if(s){s.textContent='Publishing…';}
+    const res=await api('/api/publish',{token,urn,text:p.text,asset_urn:p.assetUrn||''});
+    if(res.ok){ok++;if(s){s.textContent='Published';s.className='ps ps-pub';}}
+    else{fail++;if(s){s.textContent='Failed';s.className='ps ps-fail';}}
+  }
+  setBtn('pub-btn','Publish all approved posts to LinkedIn',false);
+  if(ok&&!fail){msg.className='msg msg-ok';msg.textContent=`All ${ok} post${ok>1?'s':''} published!`;}
+  else if(ok){msg.className='msg msg-info';msg.textContent=`${ok} published, ${fail} failed.`;}
+  else{msg.className='msg msg-err';msg.textContent='Publishing failed. Check your token and URN.';}
+}
+
+function copyAll(){
+  const posts=S.posts.filter(p=>p.verdict==='approved'||p.verdict==='scheduled');
+  if(!posts.length){alert('No approved/scheduled posts.');return;}
+  const text=posts.map((p,i)=>`--- Post ${i+1}: ${p.topic} ---\n\n${p.text}`).join('\n\n\n');
+  navigator.clipboard.writeText(text).then(()=>{
+    const m=document.getElementById('copy-msg');m.style.display='block';setTimeout(()=>m.style.display='none',2500);
+  });
+}
+
+// ── Calendar ──────────────────────────────────────────────────────────────────
+
+async function loadCalendar(){
+  const res=await api('/api/get-schedule',null,'GET').catch(()=>({ok:false,posts:[]}));
+  S.schedPosts=res.ok?res.posts:[];
+  renderCalendar();
+  renderSchedList();
+}
+
+function changeMonth(dir){
+  if(dir===0){S.calYear=new Date().getFullYear();S.calMonth=new Date().getMonth();}
+  else{S.calMonth+=dir;if(S.calMonth>11){S.calMonth=0;S.calYear++;}else if(S.calMonth<0){S.calMonth=11;S.calYear--;}}
+  loadCalendar();
+}
+
+function renderCalendar(){
+  const y=S.calYear,m=S.calMonth;
+  document.getElementById('cal-title').textContent=
+    new Date(y,m,1).toLocaleDateString('en',{month:'long',year:'numeric'});
+
+  // Day headers
+  const hdrs=document.getElementById('day-hdrs');
+  hdrs.innerHTML=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div class="day-hdr">${d}</div>`).join('');
+
+  const first=new Date(y,m,1).getDay();
+  const total=new Date(y,m+1,0).getDate();
+  const prevTotal=new Date(y,m,0).getDate();
+  const today=new Date();
+  const grid=document.getElementById('cal-grid');grid.innerHTML='';
+
+  const pad=(n)=>String(n).padStart(2,'0');
+  const dateKey=(d)=>`${y}-${pad(m+1)}-${pad(d)}`;
+
+  // Build a map of posts by date
+  const postsByDate={};
+  S.schedPosts.forEach(p=>{
+    const dkey=p.scheduled_at?p.scheduled_at.split('T')[0]:'';
+    if(!postsByDate[dkey]) postsByDate[dkey]=[];
+    postsByDate[dkey].push(p);
+  });
+
+  // Prev month days
+  for(let i=0;i<first;i++){
+    const d=prevTotal-first+1+i;
+    const el=document.createElement('div');el.className='calday other';
+    el.innerHTML=`<div class="dn">${d}</div>`;grid.appendChild(el);
+  }
+  // Current month days
+  for(let d=1;d<=total;d++){
+    const key=dateKey(d);
+    const isToday=today.getFullYear()===y&&today.getMonth()===m&&today.getDate()===d;
+    const dayPosts=postsByDate[key]||[];
+    const el=document.createElement('div');
+    el.className='calday'+(isToday?' today':'')+(dayPosts.length?' has-posts':'');
+    let html=`<div class="dn">${d}</div>`;
+    dayPosts.slice(0,2).forEach(p=>{
+      const cls=p.status==='published'?'pdot-pub':p.status==='failed'?'pdot-fail':'pdot-sch';
+      const time=p.scheduled_at?p.scheduled_at.split('T')[1]?.slice(0,5):'';
+      html+=`<div class="pdot ${cls}" title="${p.topic}">${time} ${p.topic.slice(0,16)}…</div>`;
+    });
+    if(dayPosts.length>2) html+=`<div class="more-dot">+${dayPosts.length-2} more</div>`;
+    el.innerHTML=html;
+    if(dayPosts.length){
+      el.onclick=(e)=>{if(e.target.classList.contains('pdot')||e.target.tagName!=='DIV')return;openDayModal(key,dayPosts);};
+      el.querySelectorAll('.pdot').forEach((dot,i)=>dot.onclick=(e)=>{e.stopPropagation();openDayModal(key,dayPosts);});
+    } else {
+      el.onclick=()=>{/* future: quick-add */};
+    }
+    grid.appendChild(el);
+  }
+  // Filler
+  const rem=42-first-total;
+  for(let d=1;d<=rem;d++){
+    const el=document.createElement('div');el.className='calday other';
+    el.innerHTML=`<div class="dn">${d}</div>`;grid.appendChild(el);
+  }
+}
+
+function renderSchedList(){
+  const list=document.getElementById('sched-list');
+  if(!S.schedPosts.length){list.innerHTML='<div class="empty">No scheduled posts yet. Draft a post and click Schedule.</div>';return;}
+  list.innerHTML='';
+  const sorted=[...S.schedPosts].sort((a,b)=>a.scheduled_at>b.scheduled_at?1:-1);
+  sorted.forEach(p=>{
+    const statusCls=p.status==='published'?'b-new':p.status==='failed'?'b-hot':'b-sched';
+    const statusLbl=p.status==='published'?'Published':p.status==='failed'?'Failed':'Scheduled';
+    const div=document.createElement('div');div.className='slist-item';div.id='sli-'+p.id;
+    div.innerHTML=`
+    <div class="sli-hd">
+      <span class="sli-topic">${p.topic}</span>
+      <span class="badge ${statusCls}">${statusLbl}</span>
+    </div>
+    <div class="sli-meta">📅 ${fmtDateTime(p.scheduled_at)}${p.published_at?' · Published '+fmtDateTime(p.published_at):''}${p.error?` · <span style="color:var(--red-tx)">${p.error}</span>`:''}</div>
+    <div class="sli-exc">${p.text}</div>
+    <div class="sli-actions">
+      ${p.status==='scheduled'?`<button class="btn btn-ok" onclick="publishNow('${p.id}')">Publish now</button>`:''}
+      ${p.status==='scheduled'?`<button class="btn btn-sched" onclick="showReschedule('${p.id}','${p.scheduled_at}')">Reschedule</button>`:''}
+      <button class="btn btn-no" onclick="deleteScheduled('${p.id}')">Delete</button>
+    </div>
+    <div id="rs-${p.id}" style="display:none;margin-top:10px;padding:10px;border:1px dashed var(--purple-tx);border-radius:var(--r);background:var(--purple-bg)">
+      <div class="sched-row">
+        <div style="flex:1"><label>New date</label><input type="date" id="rsd-${p.id}"/></div>
+        <div style="flex:1"><label>New time</label><input type="time" id="rst-${p.id}" value="09:00"/></div>
+        <button class="btn btn-sched" onclick="doReschedule('${p.id}')">Save</button>
+        <button class="btn" onclick="document.getElementById('rs-${p.id}').style.display='none'">Cancel</button>
+      </div>
+    </div>`;
+    list.appendChild(div);
+  });
+}
+
+function showReschedule(id,currentIso){
+  const el=document.getElementById('rs-'+id);el.style.display='block';
+  if(currentIso){
+    const parts=currentIso.split('T');
+    document.getElementById('rsd-'+id).value=parts[0]||'';
+    document.getElementById('rst-'+id).value=(parts[1]||'09:00').slice(0,5);
+  }
+}
+
+async function doReschedule(id){
+  const date=document.getElementById('rsd-'+id).value;
+  const time=document.getElementById('rst-'+id).value;
+  if(!date||!time){alert('Pick a date and time.');return;}
+  const res=await api(`/api/reschedule/${id}`,{scheduled_at:date+'T'+time});
+  if(res.ok) loadCalendar();else alert('Error: '+res.error);
+}
+
+async function publishNow(id){
+  if(!confirm('Publish this post to LinkedIn now?')) return;
+  const res=await api(`/api/publish-now/${id}`,{});
+  if(res.ok){alert('Published!');loadCalendar();}
+  else alert('Failed: '+res.error);
+}
+
+async function deleteScheduled(id){
+  if(!confirm('Delete this scheduled post?')) return;
+  const res=await fetch(`/api/delete-scheduled/${id}`,{method:'DELETE'}).then(r=>r.json());
+  if(res.ok) loadCalendar();
+}
+
+// ── Day modal ─────────────────────────────────────────────────────────────────
+
+function openDayModal(dateKey,posts){
+  document.getElementById('modal-date').textContent=fmtDate(dateKey+'T00:00');
+  const mp=document.getElementById('modal-posts');mp.innerHTML='';
+  posts.forEach(p=>{
+    const statusCls=p.status==='published'?'b-new':p.status==='failed'?'b-hot':'b-sched';
+    const div=document.createElement('div');
+    div.style.cssText='border:1px solid var(--br);border-radius:var(--r);padding:12px;margin-bottom:8px';
+    div.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <span style="font-size:13px;font-weight:500">${p.topic}</span>
+      <span class="badge ${statusCls}">${p.status}</span>
+    </div>
+    <div style="font-size:12px;color:var(--tx3);margin-bottom:6px">${fmtDateTime(p.scheduled_at)}</div>
+    <div style="font-size:13px;color:var(--tx2);white-space:pre-wrap;max-height:100px;overflow-y:auto">${p.text}</div>
+    ${p.status==='scheduled'?`<div style="display:flex;gap:6px;margin-top:8px">
+      <button class="btn btn-ok" style="font-size:12px;padding:5px 12px" onclick="publishNow('${p.id}')">Publish now</button>
+      <button class="btn btn-no" style="font-size:12px;padding:5px 12px" onclick="deleteScheduled('${p.id}');closeModal()">Delete</button>
+    </div>`:''}`;
+    mp.appendChild(div);
+  });
+  document.getElementById('day-modal').classList.add('open');
+}
+function closeModal(){document.getElementById('day-modal').classList.remove('open');}
+
+
+// ── Custom topic search ───────────────────────────────────────────────────────
+
+let topicResults = [];
+let topicCurrentText = '';
+
+async function searchTopic(){
+  const topic = document.getElementById('topic-input').value.trim();
+  if(!topic){alert('Please enter a topic.');return;}
+  const log = document.getElementById('topic-log');
+  log.textContent = 'Searching the web for: ' + topic + '…';
+  setBtn('topic-search-btn','<span class="spin spin-dark"></span>Searching…',true);
+  document.getElementById('topic-results-wrap').style.display='none';
+  document.getElementById('topic-draft-wrap').style.display='none';
+
+  const res = await api('/api/search-topic',{
+    topic,
+    source_type: document.getElementById('topic-source').value,
+    max_results:  parseInt(document.getElementById('topic-count').value),
+  });
+
+  setBtn('topic-search-btn','Search the web',false);
+
+  if(!res.ok){log.textContent='Error: '+(res.error||'Unknown error');return;}
+  log.textContent = 'Found ' + res.results.length + ' results for: ' + res.topic;
+
+  topicResults = res.results.map((r,i)=>({...r,id:i,selected:false}));
+  renderTopicResults();
+  document.getElementById('topic-results-wrap').style.display='block';
+
+  // pre-fill credentials
+  const li = await api('/api/li-prefill',null,'GET').catch(()=>({}));
+  if(li.token){document.getElementById('topic-token').value=li.token;}
+  if(li.urn)  {document.getElementById('topic-urn').value=li.urn;}
+
+  // default schedule date to tomorrow
+  const tom=new Date();tom.setDate(tom.getDate()+1);
+  document.getElementById('topic-sched-date').value=tom.toISOString().split('T')[0];
+}
+
+function renderTopicResults(){
+  const list = document.getElementById('topic-results-list');
+  list.innerHTML='';
+  topicResults.forEach(r=>{
+    const typeColor = r.type==='research' ? 'b-sched' : 'b-new';
+    const typeLabel = r.type==='research' ? 'Research' : 'News';
+    const div=document.createElement('div');
+    div.className='tcard'+(r.selected?' sel':'');
+    div.innerHTML=`
+      <div class="chk">${r.selected?'✓':''}</div>
+      <div class="tbody">
+        <div class="ttitle">${r.title}</div>
+        <div class="tsummary">${r.summary}</div>
+        <div class="tmeta">
+          <span class="badge ${typeColor}">${typeLabel}</span>
+          ${r.date?'<span class="twhy">'+r.date+'</span>':''}
+          ${r.url?'<a href="'+r.url+'" target="_blank" style="font-size:11px;color:var(--blue-tx)">Read →</a>':''}
+        </div>
+      </div>`;
+    div.onclick=()=>{r.selected=!r.selected;renderTopicResults();};
+    list.appendChild(div);
+  });
+  const n=topicResults.filter(r=>r.selected).length;
+  document.getElementById('topic-sel-count').textContent=n+' selected';
+  const btn=document.getElementById('topic-draft-btn');
+  btn.disabled=n===0;
+  btn.textContent=n>0?'Generate post from '+n+' selected source'+(n>1?'s':'')+'  →':'Generate post from selected sources';
+}
+
+async function draftFromTopic(){
+  const selected=topicResults.filter(r=>r.selected);
+  if(!selected.length){alert('Select at least one source.');return;}
+  setBtn('topic-draft-btn','<span class="spin spin-dark"></span>Drafting…',true);
+
+  const res=await api('/api/draft-from-topic',{
+    topic:   document.getElementById('topic-input').value.trim(),
+    selected: selected.map(r=>({title:r.title,summary:r.summary,url:r.url,type:r.type,date:r.date})),
+    tone:    document.getElementById('topic-tone').value,
+    length:  document.getElementById('topic-length').value,
+    angle:   document.getElementById('topic-angle').value.trim(),
+  });
+
+  setBtn('topic-draft-btn','Generate post from selected sources',false);
+  if(!res.ok){alert('Draft failed: '+res.error);return;}
+
+  topicCurrentText=res.text;
+  document.getElementById('topic-draft-editor').value=res.text;
+  document.getElementById('topic-preview').textContent=res.text;
+  updateTopicCC();
+  renderTopicHashtags(res.hashtags||[]);
+  document.getElementById('topic-draft-wrap').style.display='block';
+  document.getElementById('topic-draft-wrap').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+async function regenTopicPost(){
+  await draftFromTopic();
+}
+
+function appendHashtag(postIdx, tag, el){
+  const ta = document.getElementById('pe-'+postIdx);
+  if(!ta) return;
+  const current = ta.value.trim();
+  // Avoid double-adding
+  if(current.includes(tag)){el.classList.add('added');return;}
+  ta.value = current + (current ? '\n\n' : '') + tag;
+  S.posts[postIdx].text = ta.value;
+  updateCC(postIdx);
+  el.classList.add('added');
+}
+
+function appendTopicHashtag(tag, el){
+  const ta = document.getElementById('topic-draft-editor');
+  if(!ta) return;
+  const current = ta.value.trim();
+  if(current.includes(tag)){el.classList.add('added');return;}
+  ta.value = current + (current ? '\n\n' : '') + tag;
+  updateTopicCC();
+  el.classList.add('added');
+}
+
+function renderTopicHashtags(hashtags){
+  const row = document.getElementById('topic-tag-row');
+  if(!row) return;
+  row.innerHTML = (hashtags||[]).map(t =>
+    `<span class="tag-pill" onclick="appendTopicHashtag('${t}',this)">${t}</span>`
+  ).join('');
+}
+
+function updateTopicCC(){
+  const n=document.getElementById('topic-draft-editor').value.length;
+  const el=document.getElementById('topic-cc');
+  el.textContent=n+' / 3000';
+  el.className='charcount'+(n>2800?' warn':'');
+  document.getElementById('topic-preview').textContent=document.getElementById('topic-draft-editor').value||'Preview appears here.';
+}
+
+function toggleTopicSched(){
+  const p=document.getElementById('topic-sched-picker');
+  p.style.display=p.style.display==='none'?'block':'none';
+}
+
+async function confirmTopicSchedule(){
+  const date=document.getElementById('topic-sched-date').value;
+  const time=document.getElementById('topic-sched-time').value;
+  const token=document.getElementById('topic-token').value.trim();
+  const urn=document.getElementById('topic-urn').value.trim();
+  const text=document.getElementById('topic-draft-editor').value.trim();
+  const topic=document.getElementById('topic-input').value.trim();
+  const msg=document.getElementById('topic-pub-msg');
+
+  if(!date||!time){alert('Pick a date and time.');return;}
+  if(!token||!urn){alert('Enter your LinkedIn access token and member URN.');return;}
+  if(!text){alert('No post text to schedule.');return;}
+
+  const res=await api('/api/schedule-post',{token,urn,text,topic,scheduled_at:date+'T'+time});
+  if(res.ok){
+    msg.className='msg msg-ok';
+    msg.textContent='Scheduled for '+date+' at '+time+'!';
+    document.getElementById('topic-sched-picker').style.display='none';
+  } else {
+    msg.className='msg msg-err';
+    msg.textContent='Schedule failed: '+res.error;
+  }
+}
+
+async function publishTopicPost(){
+  const token=document.getElementById('topic-token').value.trim();
+  const urn=document.getElementById('topic-urn').value.trim();
+  const text=document.getElementById('topic-draft-editor').value.trim();
+  const msg=document.getElementById('topic-pub-msg');
+
+  if(!token||!urn){msg.className='msg msg-err';msg.textContent='Enter your LinkedIn token and URN.';return;}
+  if(!text){msg.className='msg msg-err';msg.textContent='No post text.';return;}
+
+  const btn=document.querySelector('#topic-draft-wrap .btn-p');
+  if(btn){btn.innerHTML='<span class="spin"></span>Publishing…';btn.disabled=true;}
+
+  const res=await api('/api/publish',{token,urn,text});
+
+  if(btn){btn.innerHTML='Publish now';btn.disabled=false;}
+
+  if(res.ok&&!res.skipped){msg.className='msg msg-ok';msg.textContent='Published to LinkedIn!';}
+  else if(res.skipped){msg.className='msg msg-info';msg.textContent='Already published by scheduler.';}
+  else{msg.className='msg msg-err';msg.textContent='Failed: '+res.error;}
+}
+
+
+
+// ── Image upload ──────────────────────────────────────────────────────────────
+
+const postImages = {};   // {postIndex: {file, assetUrn}}
+
+function handleImgSelect(i, input) {
+  const file = input.files[0];
+  if (!file) return;
+  previewImage(i, file);
+}
+
+function handleImgDrop(e, i) {
+  e.preventDefault();
+  document.getElementById('img-drop-'+i).classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  previewImage(i, file);
+  document.getElementById('img-file-'+i).files = e.dataTransfer.files;
+}
+
+function previewImage(i, file) {
+  const prev = document.getElementById('img-prev-'+i);
+  const reader = new FileReader();
+  reader.onload = e => { prev.src = e.target.result; prev.style.display = 'block'; };
+  reader.readAsDataURL(file);
+  postImages[i] = { file, assetUrn: '' };
+  document.getElementById('img-status-'+i).textContent = file.name + ' — will upload when you publish';
+}
+
+async function uploadImageForPost(i, token, urn) {
+  const data = postImages[i];
+  if (!data || !data.file) return '';
+  if (data.assetUrn) return data.assetUrn;   // already uploaded
+
+  const status = document.getElementById('img-status-'+i);
+  status.textContent = 'Uploading image to LinkedIn…';
+
+  const form = new FormData();
+  form.append('token', token);
+  form.append('urn',   urn);
+  form.append('image', data.file);
+
+  const res = await fetch('/api/upload-image', { method: 'POST', body: form });
+  const json = await res.json();
+
+  if (json.ok) {
+    postImages[i].assetUrn = json.asset_urn;
+    status.textContent = '✓ Image uploaded — will be included in post';
+    return json.asset_urn;
+  } else {
+    status.textContent = '✗ Image upload failed: ' + json.error;
+    return '';
+  }
+}
+
+// Override confirmSchedule to upload image first
+const _origConfirmSchedule = confirmSchedule;
+async function confirmSchedule(i) {
+  const token = document.getElementById('r-token').value.trim();
+  const urn   = document.getElementById('r-urn').value.trim();
+  if (postImages[i]?.file && !postImages[i]?.assetUrn) {
+    await uploadImageForPost(i, token, urn);
+  }
+  S.posts[i].assetUrn = postImages[i]?.assetUrn || '';
+  await _origConfirmSchedule(i);
+}
+
+// ── Analytics ─────────────────────────────────────────────────────────────────
+
+async function fetchSingleAnalytics() {
+  const token    = document.getElementById('an-token').value.trim();
+  const post_urn = document.getElementById('an-urn').value.trim();
+  const msg      = document.getElementById('an-msg');
+
+  if (!token)    { msg.className='msg msg-err'; msg.textContent='Enter your access token.'; return; }
+  if (!post_urn) { msg.className='msg msg-err'; msg.textContent='Enter a post URN.'; return; }
+
+  setBtn('an-single-btn', '<span class="spin spin-dark"></span>Fetching…', true);
+  msg.textContent = '';
+
+  const res = await api('/api/post-analytics', { token, post_urn });
+  setBtn('an-single-btn', 'Fetch for this post', false);
+
+  if (!res.ok) {
+    msg.className='msg msg-err';
+    msg.textContent = res.error;
+    return;
+  }
+  const s = res.stats;
+  document.getElementById('an-impressions').textContent = s.impressions.toLocaleString();
+  document.getElementById('an-clicks').textContent      = s.clicks.toLocaleString();
+  document.getElementById('an-likes').textContent       = s.likes.toLocaleString();
+  document.getElementById('an-comments').textContent    = s.comments.toLocaleString();
+  document.getElementById('an-shares').textContent      = s.shares.toLocaleString();
+  document.getElementById('an-engrate').textContent     = s.engagement_rate + '%';
+  document.getElementById('an-single-wrap').style.display = 'block';
+  document.getElementById('an-all-wrap').style.display    = 'none';
+  msg.className = 'msg msg-ok';
+  msg.textContent = 'Analytics loaded for ' + post_urn;
+}
+
+async function fetchAllAnalytics() {
+  const token = document.getElementById('an-token').value.trim();
+  const msg   = document.getElementById('an-msg');
+
+  if (!token) { msg.className='msg msg-err'; msg.textContent='Enter your access token.'; return; }
+
+  setBtn('an-all-btn', '<span class="spin spin-dark"></span>Fetching all posts…', true);
+  msg.textContent = '';
+
+  const res = await api('/api/all-post-analytics', { token });
+  setBtn('an-all-btn', 'Fetch all published posts', false);
+
+  if (!res.ok) { msg.className='msg msg-err'; msg.textContent=res.error; return; }
+  if (!res.results.length) {
+    msg.className='msg msg-info';
+    msg.textContent = res.message || 'No published posts found.';
+    return;
+  }
+
+  const list = document.getElementById('an-all-list');
+  list.innerHTML = '';
+  res.results.forEach(r => {
+    const s = r.stats;
+    const div = document.createElement('div');
+    div.className = 'apost-item';
+    if (s) {
+      div.innerHTML = `
+        <div class="apost-hd">
+          <span class="apost-title">${r.topic || 'Post'}</span>
+          <span class="apost-date">${r.published_at ? r.published_at.slice(0,10) : ''}</span>
+        </div>
+        <div class="stat-grid" style="margin-bottom:0">
+          <div class="stat-card highlight"><div class="stat-val">${s.impressions.toLocaleString()}</div><div class="stat-lbl">Impressions</div></div>
+          <div class="stat-card"><div class="stat-val">${s.likes}</div><div class="stat-lbl">Likes</div></div>
+          <div class="stat-card"><div class="stat-val">${s.comments}</div><div class="stat-lbl">Comments</div></div>
+          <div class="stat-card"><div class="stat-val">${s.shares}</div><div class="stat-lbl">Shares</div></div>
+          <div class="stat-card"><div class="stat-val">${s.clicks}</div><div class="stat-lbl">Clicks</div></div>
+          <div class="stat-card highlight"><div class="stat-val">${s.engagement_rate}%</div><div class="stat-lbl">Engagement</div></div>
+        </div>`;
+    } else {
+      div.innerHTML = `
+        <div class="apost-hd">
+          <span class="apost-title">${r.topic || 'Post'}</span>
+          <span class="apost-date">${r.published_at ? r.published_at.slice(0,10) : ''}</span>
+        </div>
+        <p style="font-size:13px;color:var(--red-tx)">${r.error || 'No stats available'}</p>`;
+    }
+    list.appendChild(div);
+  });
+
+  document.getElementById('an-single-wrap').style.display = 'none';
+  document.getElementById('an-all-wrap').style.display    = 'block';
+  msg.className = 'msg msg-ok';
+  msg.textContent = `Loaded analytics for ${res.results.length} post${res.results.length>1?'s':''}.`;
+}
+
+// Pre-fill analytics token from credentials
+function prefillAnalyticsToken() {
+  const t = document.getElementById('r-token')?.value || document.getElementById('p-token')?.value || '';
+  if (t) document.getElementById('an-token').value = t;
+}
+
+
+// ── Seen cache ────────────────────────────────────────────────────────────────
+
+async function loadCacheInfo(){
+  try{
+    const res=await fetch('/api/seen-cache-info').then(r=>r.json());
+    const el=document.getElementById('cache-info');
+    if(res.ok){
+      el.textContent=res.count===0
+        ? 'Seen cache: empty — all articles are fresh'
+        : 'Seen cache: ' + res.count + ' article' + (res.count!==1?'s':'') + ' already shown (filtered on next fetch)';
+    }
+  }catch(_){}
+}
+
+async function clearSeenCache(){
+  if(!confirm('Clear the seen cache? All previously shown articles will be eligible to appear again.')) return;
+  try{
+    const res=await fetch('/api/clear-seen-cache',{method:'POST'}).then(r=>r.json());
+    if(res.ok){
+      document.getElementById('cache-info').textContent='Seen cache: cleared — all articles are fresh again';
+      document.getElementById('fetch-log').textContent='Cache cleared. Click Fetch to get fresh trends.';
+    }
+  }catch(e){alert('Could not clear cache: '+e);}
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
+(async()=>{
+  const res=await fetch('/api/key-check').then(r=>r.json()).catch(()=>({ok:false}));
+  if(!res.ok) document.getElementById('key-warn').style.display='block';
+  try{
+    const li=await fetch('/api/li-prefill').then(r=>r.json()).catch(()=>({}));
+    if(li.token){document.getElementById('r-token').value=li.token;document.getElementById('p-token').value=li.token;}
+    if(li.urn){document.getElementById('r-urn').value=li.urn;document.getElementById('p-urn').value=li.urn;}
+  }catch(_){}
+  loadCacheInfo();
+})();
+</script>
+</body>
+</html>

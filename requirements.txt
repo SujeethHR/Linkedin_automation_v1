@@ -1,0 +1,20 @@
+# LinkedIn AI Post Studio — Python dependencies
+# Install: pip install -r requirements.txt
+
+# ── Core web framework ─────────────────────────────────────────────────────────
+flask>=3.0.0
+
+# ── HTTP client ────────────────────────────────────────────────────────────────
+requests>=2.31.0
+
+# ── Environment variable loading ───────────────────────────────────────────────
+python-dotenv>=1.0.0
+
+# ── Background scheduler (auto-publish scheduled posts) ───────────────────────
+APScheduler>=3.10.0
+
+# ── Web search — DuckDuckGo (no API key needed) ────────────────────────────────
+ddgs>=0.1.0
+
+# ── Google Trends (optional — enables trending topic detection) ────────────────
+pytrends>=4.9.0
