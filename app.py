@@ -15,7 +15,8 @@ Features:
   - Custom topic search (news + research papers)
 """
 
-import os, json, re, uuid, requests, time
+import os, json, re, uuid, requests, time, threading, logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
 from urllib.parse import quote as url_quote
 from xml.etree import ElementTree as ET
@@ -36,6 +37,13 @@ except ImportError:
     PYTRENDS_AVAILABLE = False
 
 load_dotenv()
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+logger = logging.getLogger(__name__)
+
+# ── File-write locks (prevent corruption from concurrent scheduler + web requests) ─
+_sched_lock = threading.Lock()
+_seen_lock  = threading.Lock()
 
 import os as _os
 _template_folder = _os.environ.get("LINKEDIN_STUDIO_TEMPLATE_FOLDER", "templates")
@@ -167,11 +175,14 @@ def load_seen() -> dict:
         return {}
 
 def save_seen(seen: dict):
+    tmp = SEEN_FILE + ".tmp"
     try:
-        with open(SEEN_FILE, "w") as f:
-            json.dump(seen, f, indent=2)
+        with _seen_lock:
+            with open(tmp, "w") as f:
+                json.dump(seen, f, indent=2)
+            os.replace(tmp, SEEN_FILE)
     except Exception as e:
-        print(f"[cache] Save error: {e}")
+        logger.error(f"[cache] Save error: {e}")
 
 def title_key(title: str) -> str:
     return re.sub(r"[^a-z0-9 ]", "", title.lower()).strip()
@@ -201,8 +212,11 @@ def load_schedule():
     return []
 
 def save_schedule(posts):
-    with open(SCHEDULE_FILE, "w") as f:
-        json.dump(posts, f, indent=2)
+    tmp = SCHEDULE_FILE + ".tmp"
+    with _sched_lock:
+        with open(tmp, "w") as f:
+            json.dump(posts, f, indent=2)
+        os.replace(tmp, SCHEDULE_FILE)
 
 # ── LinkedIn image upload ──────────────────────────────────────────────────────
 
@@ -238,7 +252,7 @@ def upload_image_to_linkedin(token: str, urn: str, image_bytes: bytes, mime_type
                          data=image_bytes, timeout=60)
         if r.status_code not in (200, 201):
             return "", f"Image upload failed {r.status_code}: {r.text[:200]}"
-        print(f"[image] ✓ Uploaded to LinkedIn — asset: {asset_urn}")
+        logger.info(f"[image] ✓ Uploaded to LinkedIn — asset: {asset_urn}")
         return asset_urn, ""
     except Exception as e:
         return "", f"Image upload error: {e}"
@@ -252,7 +266,7 @@ def do_publish(token, urn, text, asset_urn: str = "") -> tuple:
     if not urn.startswith("urn:li:person:"): return False, f"URN format wrong: '{urn}'"
     if not text:  return False, "Post text is empty."
 
-    print(f"[publish] URN: {urn[:30]}... Image: {'yes' if asset_urn else 'no'}")
+    logger.info(f"[publish] URN: {urn[:30]}... Image: {'yes' if asset_urn else 'no'}")
 
     if asset_urn:
         payload = {
@@ -281,10 +295,10 @@ def do_publish(token, urn, text, asset_urn: str = "") -> tuple:
     }
     try:
         resp = requests.post(LINKEDIN_API_URL, headers=headers, json=payload, timeout=20)
-        print(f"[publish] LinkedIn HTTP {resp.status_code}")
+        logger.info(f"[publish] LinkedIn HTTP {resp.status_code}")
         if resp.ok:
             post_urn = resp.headers.get("x-restli-id", "")
-            print(f"[publish] ✓ Published — URN: {post_urn}")
+            logger.info(f"[publish] ✓ Published — URN: {post_urn}")
             return True, post_urn
         try:
             err  = resp.json()
@@ -321,7 +335,7 @@ def check_scheduled_posts():
             post["post_urn"]     = result if ok else ""
             post["error"]        = "" if ok else result
             changed = True
-            print(f"[scheduler] {'✓' if ok else '✗'} {post.get('topic','')[:60]} — {post['status']}")
+            logger.info(f"[scheduler] {'✓' if ok else '✗'} {post.get('topic','')[:60]} — {post['status']}")
     if changed:
         save_schedule(posts)
 
@@ -331,15 +345,24 @@ scheduler.start()
 
 # ── Abacus ChatLLM ─────────────────────────────────────────────────────────────
 
-def call_chatllm(messages: list, max_tokens: int = 2000) -> str:
+def call_chatllm(messages: list, max_tokens: int = 2000, _retries: int = 2) -> str:
     if not ABACUS_API_KEY:
         raise ValueError("ABACUS_API_KEY not set in .env")
-    headers = {"Authorization": f"Bearer {ABACUS_API_KEY}", "Content-Type": "application/json"}
-    payload = {"model": ABACUS_MODEL, "max_tokens": max_tokens, "messages": messages}
+    headers  = {"Authorization": f"Bearer {ABACUS_API_KEY}", "Content-Type": "application/json"}
+    payload  = {"model": ABACUS_MODEL, "max_tokens": max_tokens, "messages": messages}
     endpoint = ABACUS_BASE_URL.rstrip("/") + "/chat/completions"
-    resp = requests.post(endpoint, headers=headers, json=payload, timeout=60)
-    resp.raise_for_status()
-    return resp.json()["choices"][0]["message"]["content"]
+    last_exc: Exception = RuntimeError("No attempts made")
+    for attempt in range(_retries + 1):
+        try:
+            resp = requests.post(endpoint, headers=headers, json=payload, timeout=60)
+            resp.raise_for_status()
+            return resp.json()["choices"][0]["message"]["content"]
+        except Exception as e:
+            last_exc = e
+            if attempt < _retries:
+                logger.warning(f"[llm] Attempt {attempt + 1} failed ({e}) — retrying in {2**attempt}s…")
+                time.sleep(2 ** attempt)
+    raise last_exc
 
 # ── Hashtag generator ──────────────────────────────────────────────────────────
 
@@ -361,7 +384,7 @@ def generate_hashtags(topic: str, post_text: str, count: int = 5) -> list:
         )
         return [w.strip() for w in result.split() if w.strip().startswith("#")][:count]
     except Exception as e:
-        print(f"[hashtags] Error: {e}")
+        logger.warning(f"[hashtags] Error: {e}")
         return []
 
 # ── AI image generation ────────────────────────────────────────────────────────
@@ -375,7 +398,7 @@ def search_ddg(query: str, max_results: int = 8, timelimit: str = "w") -> list:
         with DDGS() as ddgs:
             return list(ddgs.text(query, max_results=max_results, timelimit=timelimit))
     except Exception as e:
-        print(f"[ddg] Error: {e}")
+        logger.warning(f"[ddg] Error: {e}")
         return []
 
 # ── RSS feeds ──────────────────────────────────────────────────────────────────
@@ -414,16 +437,22 @@ def fetch_rss(feed_name: str, url: str, max_items: int = 8) -> list:
                     results.append({"title": title, "summary": summary, "url": link,
                                      "date": pub[:16], "source": feed_name, "type": "rss"})
     except Exception as e:
-        print(f"[rss] {feed_name}: {e}")
+        logger.warning(f"[rss] {feed_name}: {e}")
     return results
 
 
 def fetch_selected_rss(feed_names: list, max_per_feed: int = 6) -> list:
-    all_items = []
-    for name in feed_names:
-        url = RSS_FEEDS.get(name)
-        if url:
-            all_items.extend(fetch_rss(name, url, max_per_feed))
+    feeds = [(name, RSS_FEEDS[name]) for name in feed_names if name in RSS_FEEDS]
+    if not feeds:
+        return []
+    all_items: list = []
+    with ThreadPoolExecutor(max_workers=min(8, len(feeds))) as ex:
+        futures = {ex.submit(fetch_rss, name, url, max_per_feed): name for name, url in feeds}
+        for fut in as_completed(futures):
+            try:
+                all_items.extend(fut.result())
+            except Exception as e:
+                logger.warning(f"[rss] {futures[fut]}: {e}")
     return all_items
 
 # ── Google Trends ──────────────────────────────────────────────────────────────
@@ -448,7 +477,7 @@ def fetch_google_trends(keywords: list, geo: str = "IN") -> list:
                             "source": "Google Trends", "type": "trend",
                         })
         except Exception as e:
-            print(f"[trends] Realtime error: {e}")
+            logger.warning(f"[trends] Realtime error: {e}")
         if keywords:
             try:
                 pt.build_payload(keywords[:3], timeframe="now 7-d", geo=geo)
@@ -468,9 +497,9 @@ def fetch_google_trends(keywords: list, geo: str = "IN") -> list:
                                         "source": "Google Trends", "type": "trend",
                                     })
             except Exception as e:
-                print(f"[trends] Related queries error: {e}")
+                logger.warning(f"[trends] Related queries error: {e}")
     except Exception as e:
-        print(f"[trends] Error: {e}")
+        logger.warning(f"[trends] Error: {e}")
     return results
 
 # ── Twitter/X via DuckDuckGo ───────────────────────────────────────────────────
@@ -527,7 +556,7 @@ def build_trend_context(niche: str, categories: list, count: int,
             ddg_queries.extend(boosters)
     ddg_queries = list(dict.fromkeys(ddg_queries))
 
-    print(f"[search] DDG: {len(ddg_queries)} queries (past 7 days)...")
+    logger.info(f"[search] DDG: {len(ddg_queries)} queries (past 7 days)...")
     for q in ddg_queries:
         hits = search_ddg(q, max_results=6, timelimit="w")
         if not hits:
@@ -582,7 +611,7 @@ def build_trend_context(niche: str, categories: list, count: int,
             session_keys.add(tk)
             all_items.append(r)
 
-    print(f"[search] {len(all_items)} fresh items")
+    logger.info(f"[search] {len(all_items)} fresh items")
     if all_items:
         mark_seen([i["title"] for i in all_items], [i.get("url","") for i in all_items if i.get("url")])
 
@@ -617,8 +646,7 @@ def li_prefill():
 
 @app.route("/api/sources-status")
 def sources_status():
-    return jsonify({"ddg": DDG_AVAILABLE, "trends": PYTRENDS_AVAILABLE,
-                    "ddg": DDG_AVAILABLE, "trends": PYTRENDS_AVAILABLE})
+    return jsonify({"ddg": DDG_AVAILABLE, "trends": PYTRENDS_AVAILABLE})
 
 # Seen cache
 @app.route("/api/seen-cache-info")
@@ -773,12 +801,15 @@ def draft_from_topic():
           "long":"800 to 1500 characters"}.get(length,"300 to 800 characters")
     sources_block = ""
     for i, s in enumerate(selected[:8], 1):
-        lbl = {"research":"Research paper","twitter":"Tweet","trend":"Google Trend"}.get(s.get("type",""),"Article")
-        sources_block += (str(i)+". ["+lbl+"] "+s.get("title","")
-            +(" ("+s.get("date","")+")") if s.get("date") else ""
-            +"\n   "+s.get("summary","")[:200]
-            +("\n   Source: "+s.get("url","") if s.get("url") else "")
-            +"\n\n")
+        lbl  = {"research": "Research paper", "twitter": "Tweet", "trend": "Google Trend"}.get(s.get("type", ""), "Article")
+        line = str(i) + ". [" + lbl + "] " + s.get("title", "")
+        if s.get("date"):
+            line += " (" + s.get("date", "") + ")"
+        line += "\n   " + s.get("summary", "")[:200]
+        if s.get("url"):
+            line += "\n   Source: " + s.get("url", "")
+        line += "\n\n"
+        sources_block += line
     if not sources_block:
         sources_block = "(No sources — use general knowledge about: " + topic + ")"
     user_msg = (

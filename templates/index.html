@@ -248,7 +248,7 @@ textarea{resize:vertical;line-height:1.6}
 </div>
 
 <div id="key-warn" class="key-warn" style="display:none">
-  ⚠️ ANTHROPIC_API_KEY not set. Add it to your <code>.env</code> file and restart the server.
+  ⚠️ ABACUS_API_KEY not set. Add it to your <code>.env</code> file and restart the server.
 </div>
 
 <!-- Main nav -->
@@ -429,121 +429,6 @@ textarea{resize:vertical;line-height:1.6}
   <button class="btn btn-full" onclick="copyAll()" style="margin-bottom:8px">Copy all approved posts to clipboard</button>
   <button class="btn btn-full" onclick="window.open('https://www.linkedin.com/feed/','_blank')">Open LinkedIn in browser ↗</button>
   <div id="copy-msg" class="msg msg-ok" style="display:none;text-align:center">Copied!</div>
-</div>
-
-<!-- ══ CUSTOM TOPIC SEARCH ══ -->
-<div class="sec" id="sec-topic">
-  <div class="card">
-    <div style="margin-bottom:1rem">
-      <p style="font-size:15px;font-weight:600;margin-bottom:4px">Custom topic search</p>
-      <p style="font-size:13px;color:var(--tx2)">Enter any topic — the app scrapes news articles and research papers, lets you pick what to include, then drafts a post.</p>
-    </div>
-    <div class="field">
-      <label>Topic</label>
-      <input type="text" id="topic-input" placeholder="e.g. OpenAI Sora, AI agents in healthcare, LLM fine-tuning..." />
-    </div>
-    <div class="two">
-      <div>
-        <label>Source type</label>
-        <select id="topic-source">
-          <option value="all">News + Research papers</option>
-          <option value="news">News articles only</option>
-          <option value="research">Research papers only</option>
-        </select>
-      </div>
-      <div>
-        <label>Number of results</label>
-        <select id="topic-count">
-          <option value="8">8 results</option>
-          <option value="12" selected>12 results</option>
-          <option value="16">16 results</option>
-        </select>
-      </div>
-    </div>
-    <button class="btn btn-p btn-full" id="topic-search-btn" onclick="searchTopic()">Search the web</button>
-    <div class="fetch-log" id="topic-log"></div>
-  </div>
-
-  <!-- Results picker -->
-  <div id="topic-results-wrap" style="display:none">
-    <div class="selbar">
-      <span>Select sources to include in your post</span>
-      <span id="topic-sel-count" style="font-weight:500">0 selected</span>
-    </div>
-    <div id="topic-results-list"></div>
-
-    <!-- Draft config -->
-    <div class="card" style="margin-top:1rem">
-      <p style="font-size:14px;font-weight:500;margin-bottom:12px">Post settings</p>
-      <div class="two">
-        <div>
-          <label>Tone</label>
-          <select id="topic-tone">
-            <option value="Conversational & authentic">Conversational</option>
-            <option value="Thought leadership & insightful">Thought leadership</option>
-            <option value="Storytelling & personal">Storytelling</option>
-            <option value="Practical how-to tips">How-to tips</option>
-            <option value="Bold & contrarian take">Contrarian</option>
-            <option value="Inspirational & forward-looking">Inspirational</option>
-          </select>
-        </div>
-        <div>
-          <label>Length</label>
-          <select id="topic-length">
-            <option value="short">Short (&lt;300 chars)</option>
-            <option value="medium" selected>Medium (300–800)</option>
-            <option value="long">Long-form (800–1500)</option>
-          </select>
-        </div>
-      </div>
-      <div class="field">
-        <label>Custom angle / instruction (optional)</label>
-        <input type="text" id="topic-angle" placeholder="e.g. focus on implications for indie developers, write from a skeptic's view..." />
-      </div>
-      <button class="btn btn-p btn-full" id="topic-draft-btn" onclick="draftFromTopic()" disabled>Generate post from selected sources</button>
-    </div>
-
-    <!-- Draft output -->
-    <div id="topic-draft-wrap" style="display:none;margin-top:1rem">
-      <div class="card">
-        <p style="font-size:14px;font-weight:500;margin-bottom:10px">Your draft</p>
-        <textarea class="peditor" id="topic-draft-editor" style="min-height:200px" oninput="updateTopicCC()"></textarea>
-        <div class="charcount" id="topic-cc">0 / 3000</div>
-
-        <!-- LinkedIn preview -->
-        <div style="border:1px solid var(--br);border-radius:var(--rl);padding:1rem 1.25rem;margin-top:1rem">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-            <div style="width:40px;height:40px;border-radius:50%;background:var(--blue-bg);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:var(--blue-tx);flex-shrink:0">YN</div>
-            <div>
-              <div style="font-size:14px;font-weight:500">Your Name</div>
-              <div style="font-size:12px;color:var(--tx2)">Personal brand · Just now</div>
-            </div>
-          </div>
-          <div id="topic-preview" style="font-size:14px;line-height:1.7;white-space:pre-wrap;word-break:break-word;color:var(--tx)">Your post preview will appear here.</div>
-        </div>
-
-        <!-- Credentials -->
-        <div class="two" style="margin-top:1rem">
-          <div><label>LinkedIn access token</label><input type="password" id="topic-token" placeholder="AQV..."/></div>
-          <div><label>Member URN</label><input type="text" id="topic-urn" placeholder="urn:li:person:XXXX"/></div>
-        </div>
-        <div style="display:flex;gap:8px;margin-top:.5rem;flex-wrap:wrap">
-          <button class="btn btn-secondary" style="flex:1" onclick="regenTopicPost()">↻ Regenerate</button>
-          <button class="btn btn-sched" style="flex:1" onclick="scheduleTopicPost()">📅 Schedule</button>
-          <button class="btn btn-p" style="flex:1" onclick="publishTopicPost()">🚀 Publish now</button>
-        </div>
-        <div class="sched-picker" id="topic-sched-picker" style="margin-top:10px">
-          <label style="margin-bottom:8px;font-weight:500">Pick date &amp; time</label>
-          <div class="sched-row">
-            <div style="flex:1"><label>Date</label><input type="date" id="topic-sched-date"/></div>
-            <div style="flex:1"><label>Time</label><input type="time" id="topic-sched-time" value="09:00"/></div>
-            <button class="btn btn-sched" onclick="confirmTopicSchedule()">Confirm</button>
-          </div>
-        </div>
-        <div id="topic-pub-msg" style="margin-top:10px"></div>
-      </div>
-    </div>
-  </div>
 </div>
 
 <!-- ══ CUSTOM TOPIC SEARCH ══ -->
@@ -738,6 +623,9 @@ const S={
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
+/** Escape external strings before injecting into innerHTML (XSS prevention) */
+function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
+
 async function api(path,body,method='POST'){
   const opts={method,headers:{'Content-Type':'application/json'}};
   if(body!=null) opts.body=JSON.stringify(body);
@@ -746,7 +634,7 @@ async function api(path,body,method='POST'){
 }
 
 function goNav(n){
-  const navIds=['nav-0','nav-1','nav-2','nav-3','nav-topic','nav-cal'];
+  const navIds=['nav-0','nav-1','nav-2','nav-3','nav-topic','nav-analytics','nav-cal'];
   navIds.forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove('active');});
   const activeId=n==='cal'?'nav-cal':n==='topic'?'nav-topic':'nav-'+n;
   const activeEl=document.getElementById(activeId);if(activeEl)activeEl.classList.add('active');
@@ -805,12 +693,12 @@ function renderTrends(){
     div.className='tcard'+(t.selected?' sel':'');
     div.innerHTML=`<div class="chk">${t.selected?'✓':''}</div>
     <div class="tbody">
-      <div class="ttitle">${t.title}</div>
-      <div class="tsummary">${t.summary}</div>
+      <div class="ttitle">${esc(t.title)}</div>
+      <div class="tsummary">${esc(t.summary)}</div>
       <div class="tmeta">
-        <span class="badge b-src">${t.source||'Web'}</span>
-        <span class="badge ${hc}">${t.heat||'new'}</span>
-        <span class="twhy">${t.why}</span>
+        <span class="badge b-src">${esc(t.source||'Web')}</span>
+        <span class="badge ${hc}">${esc(t.heat||'new')}</span>
+        <span class="twhy">${esc(t.why)}</span>
       </div>
     </div>`;
     div.onclick=()=>{t.selected=!t.selected;renderTrends();};
@@ -858,7 +746,7 @@ function renderReview(){
     <div class="charcount" id="cc-${i}">${p.text.length} / 3000</div>
     <div style="margin-bottom:8px">
       <label style="font-size:12px;color:var(--tx3)">Suggested hashtags — click to append</label>
-      <div class="tag-row" id="tags-${i}">${(p.hashtags||[]).map((t,j)=>`<span class="tag-pill" onclick="appendHashtag(${i},'${t}',this)">${t}</span>`).join('')}</div>
+      <div class="tag-row" id="tags-${i}">${(p.hashtags||[]).map((t,j)=>`<span class="tag-pill" onclick="appendHashtag(${i},${JSON.stringify(t)},this)">${esc(t)}</span>`).join('')}</div>
     </div>
 
     <div class="sched-picker" id="sp-${i}">
@@ -911,7 +799,7 @@ function setVerdict(i,v){
 function toggleSched(i){
   const sp=document.getElementById('sp-'+i);sp.classList.toggle('open');
 }
-async function confirmSchedule(i){
+async function _confirmScheduleCore(i){
   const date=document.getElementById('sd-'+i).value;
   const time=document.getElementById('st-'+i).value;
   if(!date||!time){alert('Please pick a date and time.');return;}
@@ -964,10 +852,10 @@ function renderPublish(){
     const issch=p.verdict==='scheduled';
     div.className='pitem';div.style.borderColor=issch?'var(--purple-tx)':'var(--green-tx)';div.id='pi-'+p.id;
     div.innerHTML=`<div class="pitem-hd">
-      <span class="pitem-title">${p.topic}</span>
+      <span class="pitem-title">${esc(p.topic)}</span>
       <span class="ps ${issch?'b-sched ps-p':'ps-p'}" id="ps-${p.id}">${issch?'Scheduled '+fmtDateTime(p.schedTime):'Approved'}</span>
     </div>
-    <div class="pitem-exc">${p.text}</div>`;
+    <div class="pitem-exc">${esc(p.text)}</div>`;
     list.appendChild(div);
   });
 }
@@ -1101,11 +989,11 @@ function renderSchedList(){
     const div=document.createElement('div');div.className='slist-item';div.id='sli-'+p.id;
     div.innerHTML=`
     <div class="sli-hd">
-      <span class="sli-topic">${p.topic}</span>
+      <span class="sli-topic">${esc(p.topic)}</span>
       <span class="badge ${statusCls}">${statusLbl}</span>
     </div>
-    <div class="sli-meta">📅 ${fmtDateTime(p.scheduled_at)}${p.published_at?' · Published '+fmtDateTime(p.published_at):''}${p.error?` · <span style="color:var(--red-tx)">${p.error}</span>`:''}</div>
-    <div class="sli-exc">${p.text}</div>
+    <div class="sli-meta">📅 ${fmtDateTime(p.scheduled_at)}${p.published_at?' · Published '+fmtDateTime(p.published_at):''}${p.error?` · <span style="color:var(--red-tx)">${esc(p.error)}</span>`:''}</div>
+    <div class="sli-exc">${esc(p.text)}</div>
     <div class="sli-actions">
       ${p.status==='scheduled'?`<button class="btn btn-ok" onclick="publishNow('${p.id}')">Publish now</button>`:''}
       ${p.status==='scheduled'?`<button class="btn btn-sched" onclick="showReschedule('${p.id}','${p.scheduled_at}')">Reschedule</button>`:''}
@@ -1230,12 +1118,12 @@ function renderTopicResults(){
     div.innerHTML=`
       <div class="chk">${r.selected?'✓':''}</div>
       <div class="tbody">
-        <div class="ttitle">${r.title}</div>
-        <div class="tsummary">${r.summary}</div>
+        <div class="ttitle">${esc(r.title)}</div>
+        <div class="tsummary">${esc(r.summary)}</div>
         <div class="tmeta">
           <span class="badge ${typeColor}">${typeLabel}</span>
-          ${r.date?'<span class="twhy">'+r.date+'</span>':''}
-          ${r.url?'<a href="'+r.url+'" target="_blank" style="font-size:11px;color:var(--blue-tx)">Read →</a>':''}
+          ${r.date?'<span class="twhy">'+esc(r.date)+'</span>':''}
+          ${r.url?'<a href="'+esc(r.url)+'" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:var(--blue-tx)">Read →</a>':''}
         </div>
       </div>`;
     div.onclick=()=>{r.selected=!r.selected;renderTopicResults();};
@@ -1303,7 +1191,7 @@ function renderTopicHashtags(hashtags){
   const row = document.getElementById('topic-tag-row');
   if(!row) return;
   row.innerHTML = (hashtags||[]).map(t =>
-    `<span class="tag-pill" onclick="appendTopicHashtag('${t}',this)">${t}</span>`
+    `<span class="tag-pill" onclick="appendTopicHashtag(${JSON.stringify(t)},this)">${esc(t)}</span>`
   ).join('');
 }
 
@@ -1421,8 +1309,7 @@ async function uploadImageForPost(i, token, urn) {
   }
 }
 
-// Override confirmSchedule to upload image first
-const _origConfirmSchedule = confirmSchedule;
+// confirmSchedule: upload any pending image first, then schedule
 async function confirmSchedule(i) {
   const token = document.getElementById('r-token').value.trim();
   const urn   = document.getElementById('r-urn').value.trim();
@@ -1430,7 +1317,7 @@ async function confirmSchedule(i) {
     await uploadImageForPost(i, token, urn);
   }
   S.posts[i].assetUrn = postImages[i]?.assetUrn || '';
-  await _origConfirmSchedule(i);
+  await _confirmScheduleCore(i);
 }
 
 // ── Analytics ─────────────────────────────────────────────────────────────────
