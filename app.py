@@ -1099,6 +1099,124 @@ def reschedule(post_id):
     save_schedule(posts)
     return jsonify({"ok":True})
 
+# ── Fact checker ──────────────────────────────────────────────────────────────
+
+@app.route("/api/fact-check", methods=["POST"])
+def fact_check():
+    body = request.json or {}
+    post_text = body.get("text", "").strip()
+    if not post_text:
+        return jsonify({"ok": False, "error": "Post text is required."}), 400
+
+    date_str = datetime.now().strftime("%B %d, %Y")
+
+    # Step 1: extract factual claims from post
+    try:
+        claims_raw = call_chatllm(
+            messages=[
+                {"role": "system", "content": "You extract factual claims from text. Today is " + date_str + "."},
+                {"role": "user", "content": (
+                    "Extract the 3-5 most important verifiable factual claims from this LinkedIn post. "
+                    "Focus on specific facts, statistics, names, dates, and events — not opinions or predictions.\n\n"
+                    "Post:\n" + post_text + "\n\n"
+                    'Return ONLY a JSON array of strings. Example: ["Claim 1", "Claim 2"]\n'
+                    "If there are no verifiable facts, return []."
+                )},
+            ],
+            max_tokens=400,
+        )
+        claims_raw = claims_raw.strip()
+        if claims_raw.startswith("```"):
+            claims_raw = claims_raw.split("```")[1]
+            if claims_raw.startswith("json"):
+                claims_raw = claims_raw[4:].strip()
+        claims = json.loads(claims_raw)
+        if not isinstance(claims, list):
+            claims = []
+    except Exception as e:
+        logger.warning(f"[fact-check] Claim extraction error: {e}")
+        return jsonify({"ok": False, "error": f"Could not extract claims: {e}"}), 500
+
+    if not claims:
+        return jsonify({
+            "ok": True,
+            "verdict": "no_claims",
+            "score": 100,
+            "claims": [],
+            "summary": "No specific verifiable factual claims found in this post — it appears to be opinion or general commentary.",
+        })
+
+    # Step 2: search web evidence for each claim
+    evidence_blocks = []
+    for claim in claims[:5]:
+        hits = search_ddg(claim, max_results=4, timelimit="m")
+        if not hits:
+            hits = search_ddg(claim, max_results=4, timelimit="y")
+        snippets = []
+        for h in hits[:4]:
+            t = (h.get("title") or "").strip()
+            b = (h.get("body")  or "").strip()[:300]
+            u = (h.get("href")  or "").strip()
+            if t:
+                snippets.append(f'- "{t}": {b} ({u})')
+        evidence_blocks.append({
+            "claim": claim,
+            "evidence": snippets,
+        })
+
+    # Step 3: LLM evaluates each claim against real evidence
+    evidence_text = ""
+    for i, block in enumerate(evidence_blocks, 1):
+        evidence_text += f'\nClaim {i}: "{block["claim"]}"\n'
+        if block["evidence"]:
+            evidence_text += "Web evidence:\n" + "\n".join(block["evidence"]) + "\n"
+        else:
+            evidence_text += "Web evidence: (no results found)\n"
+
+    try:
+        verdict_raw = call_chatllm(
+            messages=[
+                {"role": "system", "content": (
+                    "You are a fact-checker. Today is " + date_str + ". "
+                    "Evaluate claims against real web evidence. Be strict — if evidence is missing or contradictory, mark as uncertain or false."
+                )},
+                {"role": "user", "content": (
+                    "Evaluate each claim below against the web evidence provided. "
+                    "For each claim give:\n"
+                    '- "status": "verified" (evidence supports it), "uncertain" (weak/missing evidence), or "likely_false" (evidence contradicts it)\n'
+                    '- "explanation": one sentence why\n'
+                    '- "sources": list of up to 2 relevant URLs from the evidence\n\n'
+                    + evidence_text +
+                    "\n\nAlso provide:\n"
+                    '- "overall_score": 0-100 accuracy score\n'
+                    '- "verdict": "accurate" | "mostly_accurate" | "needs_review" | "contains_errors"\n'
+                    '- "summary": 1-2 sentence overall assessment\n\n'
+                    "Return ONLY valid JSON in this exact shape:\n"
+                    '{"verdict":"...","score":85,"summary":"...","claims":[{"claim":"...","status":"verified","explanation":"...","sources":["url1"]}]}'
+                )},
+            ],
+            max_tokens=1500,
+        )
+        verdict_raw = verdict_raw.strip()
+        if verdict_raw.startswith("```"):
+            verdict_raw = verdict_raw.split("```")[1]
+            if verdict_raw.startswith("json"):
+                verdict_raw = verdict_raw[4:].strip()
+        result = json.loads(verdict_raw)
+        return jsonify({"ok": True, **result})
+    except json.JSONDecodeError:
+        m = re.search(r"\{.*\}", verdict_raw, re.DOTALL)
+        if m:
+            try:
+                result = json.loads(m.group())
+                return jsonify({"ok": True, **result})
+            except Exception:
+                pass
+        return jsonify({"ok": False, "error": "Could not parse fact-check result.", "raw": verdict_raw}), 500
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 # ── Entry point ────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":

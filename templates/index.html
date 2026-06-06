@@ -191,6 +191,31 @@ textarea{resize:vertical;line-height:1.6}
 .sli-actions{display:flex;gap:6px;flex-wrap:wrap}
 .sli-actions .btn{font-size:12px;padding:5px 12px}
 
+/* ── Fact-check panel ── */
+.fc-panel{border:1px solid var(--br2);border-radius:var(--rl);padding:14px;margin-top:10px;background:var(--bg2);display:none}
+.fc-panel.open{display:block}
+.fc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px}
+.fc-verdict{font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px}
+.fc-accurate{background:#d1fae5;color:#065f46}
+.fc-mostly{background:#fef3c7;color:#92400e}
+.fc-review{background:#fee2e2;color:#991b1b}
+.fc-score{font-size:20px;font-weight:700;color:var(--tx)}
+.fc-score span{font-size:12px;font-weight:400;color:var(--tx3)}
+.fc-summary{font-size:13px;color:var(--tx2);line-height:1.6;margin-bottom:12px}
+.fc-claim{border:1px solid var(--br);border-radius:var(--r);padding:10px 12px;margin-bottom:8px;background:var(--bg)}
+.fc-claim-top{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px}
+.fc-badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;flex-shrink:0;margin-top:1px}
+.fc-verified{background:#d1fae5;color:#065f46}
+.fc-uncertain{background:#fef3c7;color:#92400e}
+.fc-false{background:#fee2e2;color:#991b1b}
+.fc-claim-text{font-size:13px;font-weight:500;color:var(--tx);flex:1}
+.fc-explanation{font-size:12px;color:var(--tx2);line-height:1.5;margin-bottom:6px}
+.fc-sources{display:flex;flex-wrap:wrap;gap:5px}
+.fc-source-link{font-size:11px;color:#378add;text-decoration:none;border:1px solid #378add33;padding:2px 7px;border-radius:4px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block}
+.fc-source-link:hover{background:#378add15}
+.btn-fc{background:#f0f7ff;color:#1a56db;border-color:#a4cafe;font-weight:500}
+.btn-fc:hover{background:#dbeafe}
+
 /* ── Day modal (faux overlay) ── */
 .modal-wrap{min-height:300px;background:rgba(0,0,0,.45);display:none;align-items:flex-start;justify-content:center;padding:2rem 1rem;border-radius:var(--rl)}
 .modal-wrap.open{display:flex}
@@ -518,9 +543,11 @@ textarea{resize:vertical;line-height:1.6}
         </div>
         <div style="display:flex;gap:8px;margin-top:.5rem;flex-wrap:wrap">
           <button class="btn" style="flex:1" onclick="regenTopicPost()">Regenerate</button>
+          <button class="btn btn-fc" style="flex:1" onclick="factCheck('topic-draft-editor','fc-topic')" id="fc-btn-topic">🔍 Fact Check</button>
           <button class="btn btn-sched" style="flex:1" onclick="toggleTopicSched()">Schedule</button>
           <button class="btn btn-p" style="flex:1" onclick="publishTopicPost()">Publish now</button>
         </div>
+        <div class="fc-panel" id="fc-topic"></div>
         <div id="topic-sched-picker" style="display:none;margin-top:10px;padding:12px;border:1px dashed var(--purple-tx);border-radius:var(--r);background:var(--purple-bg)">
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
             <div style="flex:1"><label>Date</label><input type="date" id="topic-sched-date"/></div>
@@ -774,8 +801,10 @@ function renderReview(){
       <button class="btn btn-ok"    onclick="setVerdict(${i},'approved')">✓ Approve</button>
       <button class="btn btn-sched" onclick="toggleSched(${i})">📅 Schedule</button>
       <button class="btn btn-no"    onclick="setVerdict(${i},'rejected')">✗ Reject</button>
+      <button class="btn btn-fc"    onclick="factCheck('pe-${i}','fc-${i}')" id="fc-btn-${i}">🔍 Fact Check</button>
       <button class="btn"           onclick="regenPost(${i})" style="margin-left:auto">↻ Regen</button>
-    </div>`;
+    </div>
+    <div class="fc-panel" id="fc-${i}"></div>`;
     list.appendChild(div);
     // set default date to tomorrow
     const tomorrow=new Date();tomorrow.setDate(tomorrow.getDate()+1);
@@ -823,6 +852,70 @@ async function regenPost(i){
   const res=await api('/api/draft-post',{topic:p.topic,summary:t.summary||'',why:t.why||'',tone:S.tone,length:document.getElementById('post-length').value});
   const txt=res.ok?res.text:'Could not regenerate.';
   ta.value=txt;S.posts[i].text=txt;updateCC(i);
+}
+
+async function factCheck(editorId, panelId){
+  const ta = document.getElementById(editorId);
+  const panel = document.getElementById(panelId);
+  const btnId = 'fc-btn-' + (panelId === 'fc-topic' ? 'topic' : panelId.replace('fc-',''));
+  const btn = document.getElementById(btnId);
+  if (!ta || !panel) return;
+  const text = ta.value.trim();
+  if (!text || text.length < 20) { panel.innerHTML='<p style="font-size:13px;color:var(--tx2)">Write a post first, then fact-check it.</p>'; panel.classList.add('open'); return; }
+
+  if (btn) { btn.disabled=true; btn.innerHTML='<span class="spin"></span>Checking…'; }
+  panel.innerHTML='<p style="font-size:13px;color:var(--tx2)">Searching the web and verifying claims…</p>';
+  panel.classList.add('open');
+
+  const res = await api('/api/fact-check', { text });
+  if (btn) { btn.disabled=false; btn.innerHTML='🔍 Fact Check'; }
+
+  if (!res.ok) {
+    panel.innerHTML=`<p style="font-size:13px;color:var(--red-tx)">Fact-check failed: ${esc(res.error||'Unknown error')}</p>`;
+    return;
+  }
+
+  if (res.verdict === 'no_claims') {
+    panel.innerHTML=`<div style="font-size:13px;color:var(--tx2)">${esc(res.summary)}</div>`;
+    return;
+  }
+
+  const verdictMap = {
+    accurate:       {cls:'fc-accurate', label:'Accurate'},
+    mostly_accurate:{cls:'fc-mostly',   label:'Mostly accurate'},
+    needs_review:   {cls:'fc-review',   label:'Needs review'},
+    contains_errors:{cls:'fc-review',   label:'Contains errors'},
+  };
+  const vm = verdictMap[res.verdict] || {cls:'fc-mostly', label: res.verdict || 'Review'};
+
+  const claimsHtml = (res.claims||[]).map(c => {
+    const badgeMap = { verified:'fc-verified', uncertain:'fc-uncertain', likely_false:'fc-false' };
+    const labelMap = { verified:'Verified', uncertain:'Uncertain', likely_false:'Likely false' };
+    const bc = badgeMap[c.status] || 'fc-uncertain';
+    const bl = labelMap[c.status] || c.status;
+    const srcs = (c.sources||[]).slice(0,2).map(u =>
+      `<a class="fc-source-link" href="${esc(u)}" target="_blank" rel="noopener">${esc(u.replace(/^https?:\/\//,'').split('/')[0])}</a>`
+    ).join('');
+    return `<div class="fc-claim">
+      <div class="fc-claim-top">
+        <span class="fc-badge ${bc}">${bl}</span>
+        <span class="fc-claim-text">${esc(c.claim)}</span>
+      </div>
+      <div class="fc-explanation">${esc(c.explanation||'')}</div>
+      ${srcs ? `<div class="fc-sources">${srcs}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  panel.innerHTML=`
+    <div class="fc-header">
+      <div>
+        <span class="fc-score">${res.score||'—'}<span> / 100</span></span>
+        <span class="fc-verdict ${vm.cls}" style="margin-left:8px">${vm.label}</span>
+      </div>
+    </div>
+    <div class="fc-summary">${esc(res.summary||'')}</div>
+    ${claimsHtml}
+  `;
 }
 
 function goToPublish(){

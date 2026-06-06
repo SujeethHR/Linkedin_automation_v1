@@ -1,6 +1,6 @@
 # LinkedIn AI Post Studio
 
-A locally-run web app that helps you research industry trends, write LinkedIn posts with AI, and publish or schedule them — all from your browser.
+A locally-run web app that helps you research industry trends, write LinkedIn posts with AI, fact-check them against live web sources, and publish or schedule them — all from your browser.
 
 You run it on your own computer. Nothing is hosted, nothing is sent to a third-party service except the Abacus.AI API (for text generation) and LinkedIn's API (for publishing).
 
@@ -13,12 +13,35 @@ You open the app in your browser, pick the topics you care about (AI, pharma, cy
 From there you can:
 
 - Edit the draft directly in the browser
+- **Fact-check the post against live web results before publishing**
 - Add an image
 - Click to add suggested hashtags
 - Publish immediately to LinkedIn
 - Or schedule it for a specific date and time — the app will auto-publish in the background
 
 There is also a calendar view, post analytics (impressions, likes, engagement rate), and a custom topic search if you want to research something specific rather than browse general trends.
+
+---
+
+## Fact checker
+
+Every draft has a **"Fact Check"** button. Clicking it:
+
+1. Extracts the 3–5 key verifiable claims from your post (statistics, names, dates, events — not opinions)
+2. Searches DuckDuckGo for real, current sources for each claim
+3. Asks the AI to evaluate each claim against those live search results — not its training data
+
+Results appear inline below the editor. Each claim is classified and color-coded:
+
+| Color | Status | Meaning |
+|-------|--------|---------|
+| Green | Verified | Live web evidence supports the claim |
+| Yellow | Uncertain | Evidence is weak, missing, or ambiguous |
+| Red | Likely false | Live evidence contradicts the claim |
+
+An overall accuracy score (0–100) and verdict are shown at the top, along with clickable source links for each claim.
+
+The fact checker is available in both the Step 3 review cards and the Custom Topic draft panel.
 
 ---
 
@@ -129,11 +152,12 @@ You will see a list of trend cards. Each one shows the headline, a short summary
 
 **Step 3 — Review**
 
-The app drafts a LinkedIn post for each topic you selected. You can edit the text directly, add an image, click hashtags to append them, and then choose what to do:
+The app drafts a LinkedIn post for each topic you selected. You can edit the text directly, add an image, click hashtags to append them, and then:
 
-- "Approve" marks the post ready to publish now
-- "Schedule" lets you pick a date and time for auto-publishing
-- "Reject" skips that post
+- Click **"Fact Check"** to verify the post's claims against live web results before publishing
+- Click **"Approve"** to mark the post ready to publish now
+- Click **"Schedule"** to pick a date and time for auto-publishing
+- Click **"Reject"** to skip that post
 
 **Step 4 — Publish**
 
@@ -141,7 +165,7 @@ A summary shows how many posts are approved and scheduled. Click "Publish all ap
 
 **Custom topic search**
 
-Click "Custom topic" in the top navigation if you want to research a specific subject rather than browse trending news. Enter any topic (for example, "AI in radiology" or "zero-trust security"), choose whether to search news, research papers, or both, and the app will find relevant sources. You can then pick which sources to include and generate a post from them.
+Click "Custom topic" in the top navigation if you want to research a specific subject rather than browse trending news. Enter any topic (for example, "AI in radiology" or "zero-trust security"), choose whether to search news, research papers, or both, and the app will find relevant sources. You can then pick which sources to include and generate a post from them. A Fact Check button is available here too before you publish.
 
 **Analytics**
 
@@ -231,7 +255,7 @@ Click "Clear seen cache" below the Fetch button. The app suppresses articles it 
 
 **DuckDuckGo returns no results**
 
-DuckDuckGo may have rate-limited the app temporarily. Wait a minute and try fetching again.
+DuckDuckGo may have rate-limited the app temporarily. Wait a minute and try fetching again. The fact checker also uses DuckDuckGo — if web search is rate-limited, fact-check results may show claims as "uncertain" even if they are accurate.
 
 **Port 5001 is already in use**
 
@@ -267,7 +291,7 @@ linkedin_studio_exe_pkg/
 | `requests` | Makes HTTP calls to Abacus.AI and LinkedIn |
 | `python-dotenv` | Reads your `.env` file |
 | `APScheduler` | Runs the background scheduler that auto-publishes posts |
-| `ddgs` | Searches DuckDuckGo for recent news |
+| `ddgs` | Searches DuckDuckGo for recent news and fact-check evidence |
 | `pytrends` | Fetches Google Trends data (optional — only needed if you enable the Trends toggle) |
 
 ---
