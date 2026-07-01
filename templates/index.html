@@ -970,18 +970,18 @@ async function publishAll(){
   if(!token||!urn){msg.className='msg msg-err';msg.textContent='Please enter your access token and member URN.';return;}
   if(!approved.length){msg.className='msg msg-err';msg.textContent='No approved posts (scheduled posts will auto-publish at their time).';return;}
   setBtn('pub-btn','<span class="spin"></span>Publishing…',true);msg.textContent='';
-  let ok=0,fail=0;
+  let ok=0,fail=0,lastErr='';
   for(const p of approved){
     const s=document.getElementById('ps-'+p.id);
     if(s){s.textContent='Publishing…';}
     const res=await api('/api/publish',{token,urn,text:p.text,asset_urn:p.assetUrn||''});
     if(res.ok){ok++;if(s){s.textContent='Published';s.className='ps ps-pub';}}
-    else{fail++;if(s){s.textContent='Failed';s.className='ps ps-fail';}}
+    else{fail++;lastErr=res.error||'Unknown error';if(s){s.textContent='Failed';s.className='ps ps-fail';s.title=lastErr;}}
   }
   setBtn('pub-btn','Publish all approved posts to LinkedIn',false);
   if(ok&&!fail){msg.className='msg msg-ok';msg.textContent=`All ${ok} post${ok>1?'s':''} published!`;}
-  else if(ok){msg.className='msg msg-info';msg.textContent=`${ok} published, ${fail} failed.`;}
-  else{msg.className='msg msg-err';msg.textContent='Publishing failed. Check your token and URN.';}
+  else if(ok){msg.className='msg msg-info';msg.textContent=`${ok} published, ${fail} failed. Last error: ${lastErr}`;}
+  else{msg.className='msg msg-err';msg.textContent=`Publishing failed: ${lastErr}`;}
 }
 
 function copyAll(){

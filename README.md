@@ -227,6 +227,18 @@ The analytics feature requires `r_member_social`. LinkedIn only grants this scop
 
 ---
 
+## LinkedIn API version
+
+The app calls LinkedIn's versioned REST API (`/rest/posts` for publishing, `/rest/images` for image uploads, `/rest/memberCreatorPostAnalytics` for analytics). Every request sends a `LinkedIn-Version: YYYYMM` header, set once in `app.py` as `LINKEDIN_API_VERSION`.
+
+LinkedIn only keeps roughly the last 12 months of versions active — older ones start returning a `426 NONEXISTENT_VERSION` error. If publishing, image uploads, or analytics suddenly all fail at once with that error, the version has expired and needs bumping:
+
+1. Open `app.py` and find `LINKEDIN_API_VERSION = "..."` near the top.
+2. Update it to a recent `YYYYMM` value (e.g. the current or previous month).
+3. Restart the app.
+
+---
+
 ## Troubleshooting
 
 **The warning banner says "ABACUS_API_KEY not set"**
@@ -244,6 +256,14 @@ Your token does not have the `w_member_social` scope. Regenerate the token and m
 **LinkedIn 422 Duplicate post error**
 
 LinkedIn prevents posting the same text twice in a short window. Edit the post text slightly before trying again.
+
+**LinkedIn 426 "NONEXISTENT_VERSION" error, or publishing/image upload fails with no clear reason**
+
+The `LINKEDIN_API_VERSION` value in `app.py` has expired — see [LinkedIn API version](#linkedin-api-version) above for how to update it.
+
+**"Publishing failed" with no detail**
+
+The Publish tab now shows the real error returned by LinkedIn (token, scope, version, or content issue) instead of a generic message. Check the text next to the failed post, or hover over its status for the full error.
 
 **LinkedIn 403 on the Analytics tab**
 

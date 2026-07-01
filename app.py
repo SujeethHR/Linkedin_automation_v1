@@ -54,7 +54,9 @@ app = Flask(__name__, template_folder=_template_folder)
 ABACUS_API_KEY    = os.getenv("ABACUS_API_KEY",    "")
 ABACUS_BASE_URL   = os.getenv("ABACUS_BASE_URL",   "https://routellm.abacus.ai/v1")
 ABACUS_MODEL      = os.getenv("ABACUS_MODEL",      "route-llm")
-LINKEDIN_API_URL  = "https://api.linkedin.com/v2/ugcPosts"
+LINKEDIN_API_VERSION = "202507"
+LINKEDIN_POSTS_URL   = "https://api.linkedin.com/rest/posts"
+LINKEDIN_IMAGES_URL  = "https://api.linkedin.com/rest/images"
 LINKEDIN_TOKEN    = os.getenv("LINKEDIN_TOKEN",    "")
 LINKEDIN_URN      = os.getenv("LINKEDIN_URN",      "")
 SCHEDULE_FILE     = _os.path.join(_data_dir, "schedule.json")
@@ -221,28 +223,22 @@ def save_schedule(posts):
 # ── LinkedIn image upload ──────────────────────────────────────────────────────
 
 def upload_image_to_linkedin(token: str, urn: str, image_bytes: bytes, mime_type: str = "image/jpeg") -> tuple:
-    """Upload image to LinkedIn. Returns (asset_urn, error)."""
+    """Upload image to LinkedIn via the versioned Images API. Returns (asset_urn, error)."""
     li_headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
         "X-Restli-Protocol-Version": "2.0.0",
+        "LinkedIn-Version": LINKEDIN_API_VERSION,
     }
-    reg_payload = {
-        "registerUploadRequest": {
-            "owner": urn,
-            "recipes": ["urn:li:digitalmediaRecipe:feedshare-image"],
-            "serviceRelationships": [{"identifier": "urn:li:userGeneratedContent", "relationshipType": "OWNER"}],
-            "supportedUploadMechanism": ["SYNCHRONOUS_UPLOAD"],
-        }
-    }
+    reg_payload = {"initializeUploadRequest": {"owner": urn}}
     try:
-        r = requests.post("https://api.linkedin.com/v2/assets?action=registerUpload",
+        r = requests.post(f"{LINKEDIN_IMAGES_URL}?action=initializeUpload",
                           headers=li_headers, json=reg_payload, timeout=20)
         if not r.ok:
             return "", f"Image register failed {r.status_code}: {r.text[:200]}"
         data       = r.json()["value"]
-        upload_url = data["uploadMechanism"]["com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"]["uploadUrl"]
-        asset_urn  = data["asset"]
+        upload_url = data["uploadUrl"]
+        asset_urn  = data["image"]
     except Exception as e:
         return "", f"Image register error: {e}"
 
@@ -268,33 +264,29 @@ def do_publish(token, urn, text, asset_urn: str = "") -> tuple:
 
     logger.info(f"[publish] URN: {urn[:30]}... Image: {'yes' if asset_urn else 'no'}")
 
+    payload = {
+        "author": urn,
+        "commentary": text,
+        "visibility": "PUBLIC",
+        "distribution": {
+            "feedDistribution": "MAIN_FEED",
+            "targetEntities": [],
+            "thirdPartyDistributionChannels": [],
+        },
+        "lifecycleState": "PUBLISHED",
+        "isReshareDisabledByAuthor": False,
+    }
     if asset_urn:
-        payload = {
-            "author": urn, "lifecycleState": "PUBLISHED",
-            "specificContent": {"com.linkedin.ugc.ShareContent": {
-                "shareCommentary": {"text": text},
-                "shareMediaCategory": "IMAGE",
-                "media": [{"status": "READY", "media": asset_urn}],
-            }},
-            "visibility": {"com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"},
-        }
-    else:
-        payload = {
-            "author": urn, "lifecycleState": "PUBLISHED",
-            "specificContent": {"com.linkedin.ugc.ShareContent": {
-                "shareCommentary": {"text": text},
-                "shareMediaCategory": "NONE",
-            }},
-            "visibility": {"com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"},
-        }
+        payload["content"] = {"media": {"id": asset_urn}}
 
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
         "X-Restli-Protocol-Version": "2.0.0",
+        "LinkedIn-Version": LINKEDIN_API_VERSION,
     }
     try:
-        resp = requests.post(LINKEDIN_API_URL, headers=headers, json=payload, timeout=20)
+        resp = requests.post(LINKEDIN_POSTS_URL, headers=headers, json=payload, timeout=20)
         logger.info(f"[publish] LinkedIn HTTP {resp.status_code}")
         if resp.ok:
             post_urn = resp.headers.get("x-restli-id", "")
@@ -929,14 +921,14 @@ def debug_publish():
         return jsonify(report)
 
     try:
-        r = requests.post(LINKEDIN_API_URL,
+        r = requests.post(LINKEDIN_POSTS_URL,
             headers={"Authorization":f"Bearer {token}","Content-Type":"application/json",
-                     "X-Restli-Protocol-Version":"2.0.0"},
-            json={"author":urn,"lifecycleState":"PUBLISHED",
-                  "specificContent":{"com.linkedin.ugc.ShareContent":{
-                      "shareCommentary":{"text":"API test — safe to delete."},
-                      "shareMediaCategory":"NONE"}},
-                  "visibility":{"com.linkedin.ugc.MemberNetworkVisibility":"PUBLIC"}},
+                     "X-Restli-Protocol-Version":"2.0.0","LinkedIn-Version":LINKEDIN_API_VERSION},
+            json={"author":urn,"commentary":"API test — safe to delete.",
+                  "visibility":"PUBLIC",
+                  "distribution":{"feedDistribution":"MAIN_FEED","targetEntities":[],
+                                   "thirdPartyDistributionChannels":[]},
+                  "lifecycleState":"PUBLISHED","isReshareDisabledByAuthor":False},
             timeout=20)
         if r.ok:
             report["checks"].append({"step":"test_publish","ok":True,
@@ -960,7 +952,7 @@ def post_analytics():
     if not post_urn: return jsonify({"ok":False,"error":"Post URN required."}), 400
 
     encoded = url_quote(post_urn, safe="")
-    headers = {"Authorization":f"Bearer {token}","X-Restli-Protocol-Version":"2.0.0","LinkedIn-Version":"202501"}
+    headers = {"Authorization":f"Bearer {token}","X-Restli-Protocol-Version":"2.0.0","LinkedIn-Version":LINKEDIN_API_VERSION}
     url = (f"https://api.linkedin.com/rest/memberCreatorPostAnalytics"
            f"?q=entity&entity={encoded}"
            f"&timeIntervals=(timeRange:(start:{int((datetime.now().timestamp()-86400*30)*1000)},"
@@ -997,7 +989,7 @@ def all_post_analytics():
     published = [p for p in load_schedule() if p.get("status") == "published"]
     if not published:
         return jsonify({"ok":True,"results":[],"message":"No published posts found."})
-    headers = {"Authorization":f"Bearer {token}","X-Restli-Protocol-Version":"2.0.0","LinkedIn-Version":"202501"}
+    headers = {"Authorization":f"Bearer {token}","X-Restli-Protocol-Version":"2.0.0","LinkedIn-Version":LINKEDIN_API_VERSION}
     results = []
     for p in published:
         post_urn = p.get("post_urn","")
