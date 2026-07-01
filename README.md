@@ -23,6 +23,32 @@ There is also a calendar view, post analytics (impressions, likes, engagement ra
 
 ---
 
+## Architecture
+
+Everything runs on your own machine. The browser only talks to the local Flask app, which is the one thing that talks to the outside world.
+
+```mermaid
+flowchart TB
+    Browser["Browser<br/>templates/index.html"]
+    Flask["Flask app (app.py)<br/>Routes, scheduler, storage"]
+    Abacus["Abacus.AI<br/>Drafts post text"]
+    LinkedIn["LinkedIn API<br/>Publish &amp; analytics"]
+    Web["Web sources<br/>RSS, DuckDuckGo, Trends"]
+
+    Browser --> Flask
+    Flask --> Abacus
+    Flask --> LinkedIn
+    Flask --> Web
+```
+
+- **Browser** — the entire frontend, one HTML file, no build step.
+- **Flask app** — the backend: API routes, the scheduler that auto-publishes, and local JSON storage.
+- **Abacus.AI** — drafts and rewrites post text.
+- **LinkedIn API** — publishing, image uploads, and analytics.
+- **Web sources** — RSS feeds, DuckDuckGo, and Google Trends for trend data.
+
+---
+
 ## Fact checker
 
 Every draft has a **"Fact Check"** button. Clicking it:
