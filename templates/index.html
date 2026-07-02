@@ -44,8 +44,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .navbtn:last-child{border-right:none}
 .navbtn:hover{background:var(--bg2)}
 .navbtn.active{background:var(--bg2)}
-.navbtn.cal-btn{flex:0 0 auto;padding:12px 18px;font-weight:500;color:var(--purple-tx);background:var(--purple-bg)}
-.navbtn.cal-btn.active{background:var(--purple-bg)}
 .nb-num{font-size:11px;color:var(--tx3);display:block;margin-bottom:2px}
 .navbtn.active .nb-num,.navbtn.done .nb-num{color:var(--tx2)}
 .navbtn.done{background:var(--green-bg)}
@@ -79,7 +77,6 @@ textarea{resize:vertical;line-height:1.6}
 .btn-p:hover{opacity:.88;background:var(--tx)}
 .btn-ok{background:var(--green-bg);color:var(--green-tx);border-color:var(--green-tx);font-weight:500}
 .btn-no{background:var(--red-bg);color:var(--red-tx);border-color:var(--red-tx);font-weight:500}
-.btn-sched{background:var(--purple-bg);color:var(--purple-tx);border-color:var(--purple-tx);font-weight:500}
 .btn-full{width:100%;padding:11px;font-size:14px}
 .brow{display:flex;gap:8px;margin-top:1rem;flex-wrap:wrap}
 .brow .btn{flex:1;min-width:100px}
@@ -126,27 +123,18 @@ textarea{resize:vertical;line-height:1.6}
 .rcard{border:1px solid var(--br);border-radius:var(--rl);padding:1.25rem 1.5rem;margin-bottom:1rem;background:var(--bg);transition:border-color .15s,opacity .15s}
 .rcard.approved{border-color:#5dcaa5}
 .rcard.rejected{opacity:.45}
-.rcard.scheduled-card{border-color:var(--purple-tx)}
 .rtop{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;gap:10px}
 .rtopic{font-size:13px;font-weight:500;color:var(--tx);flex:1}
 .vbadge{font-size:11px;padding:3px 9px;border-radius:999px;font-weight:500;flex-shrink:0}
 .vb-app{background:var(--green-bg);color:var(--green-tx)}
 .vb-rej{background:var(--red-bg);color:var(--red-tx)}
-.vb-sch{background:var(--purple-bg);color:var(--purple-tx)}
 .peditor{width:100%;min-height:170px;padding:11px 13px;border:1px solid var(--br2);border-radius:var(--r);background:var(--bg2);color:var(--tx);font-size:13px;font-family:inherit;line-height:1.7;resize:vertical;margin-bottom:8px}
 .peditor:focus{border-color:#378add;background:var(--bg)}
 .charcount{font-size:12px;color:var(--tx3);text-align:right;margin-bottom:10px}
 .charcount.warn{color:var(--red-tx)}
 
-/* ── Schedule picker (inside review card) ── */
-.sched-picker{border:1px dashed var(--purple-tx);border-radius:var(--r);padding:12px;margin-bottom:10px;background:var(--purple-bg);display:none}
-.sched-picker.open{display:block}
-.sched-picker label{color:var(--purple-tx)}
-.sched-row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
-.sched-row input{flex:1;min-width:140px}
-
 /* ── Metrics ── */
-.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:1.5rem}
+.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:1.5rem}
 @media(max-width:480px){.metrics{grid-template-columns:1fr 1fr}}
 .metric{background:var(--bg2);border-radius:var(--r);padding:14px;text-align:center}
 .metric-v{font-size:24px;font-weight:600;color:var(--tx)}
@@ -161,35 +149,6 @@ textarea{resize:vertical;line-height:1.6}
 .ps-p{background:var(--bg3);color:var(--tx2)}
 .ps-pub{background:var(--green-bg);color:var(--green-tx)}
 .ps-fail{background:var(--red-bg);color:var(--red-tx)}
-
-/* ── Calendar ── */
-.cal-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;gap:12px;flex-wrap:wrap}
-.cal-title{font-size:17px;font-weight:600}
-.cal-nav{display:flex;gap:6px}
-.day-hdrs{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
-.day-hdr{font-size:11px;color:var(--tx3);text-align:center;padding:4px 0;font-weight:500}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
-.calday{min-height:72px;border:1px solid var(--br);border-radius:var(--r);padding:5px;background:var(--bg);cursor:pointer;transition:background .12s}
-.calday:hover{background:var(--bg2)}
-.calday.other{opacity:.3}
-.calday.today{border-color:#378add}
-.calday.has-posts{background:var(--bg)}
-.dn{font-size:11px;color:var(--tx3);margin-bottom:3px;font-weight:500}
-.calday.today .dn{color:#378add;font-weight:600}
-.pdot{font-size:10px;padding:2px 5px;border-radius:4px;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;line-height:1.3}
-.pdot-sch{background:var(--purple-bg);color:var(--purple-tx)}
-.pdot-pub{background:var(--green-bg);color:var(--green-tx)}
-.pdot-fail{background:var(--red-bg);color:var(--red-tx)}
-.more-dot{font-size:10px;color:var(--tx3)}
-
-/* ── Scheduled posts list ── */
-.slist-item{border:1px solid var(--br);border-radius:var(--rl);padding:12px 15px;margin-bottom:8px;background:var(--bg)}
-.sli-hd{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;gap:10px}
-.sli-topic{font-size:13px;font-weight:500;flex:1}
-.sli-meta{font-size:12px;color:var(--tx2);margin-bottom:6px}
-.sli-exc{font-size:13px;color:var(--tx2);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:8px}
-.sli-actions{display:flex;gap:6px;flex-wrap:wrap}
-.sli-actions .btn{font-size:12px;padding:5px 12px}
 
 /* ── Fact-check panel ── */
 .fc-panel{border:1px solid var(--br2);border-radius:var(--rl);padding:14px;margin-top:10px;background:var(--bg2);display:none}
@@ -216,13 +175,6 @@ textarea{resize:vertical;line-height:1.6}
 .btn-fc{background:#f0f7ff;color:#1a56db;border-color:#a4cafe;font-weight:500}
 .btn-fc:hover{background:#dbeafe}
 
-/* ── Day modal (faux overlay) ── */
-.modal-wrap{min-height:300px;background:rgba(0,0,0,.45);display:none;align-items:flex-start;justify-content:center;padding:2rem 1rem;border-radius:var(--rl)}
-.modal-wrap.open{display:flex}
-.modal{background:var(--bg);border-radius:var(--rl);padding:1.5rem;width:100%;max-width:520px;border:1px solid var(--br2)}
-.modal h3{font-size:16px;font-weight:600;margin-bottom:1rem}
-.modal-posts{max-height:320px;overflow-y:auto}
-
 /* ── Misc ── */
 .divider{border:none;border-top:1px solid var(--br);margin:1.5rem 0}
 .empty{text-align:center;padding:2.5rem 1rem;color:var(--tx3);font-size:13px}
@@ -231,16 +183,6 @@ textarea{resize:vertical;line-height:1.6}
 .msg-err{background:var(--red-bg);color:var(--red-tx)}
 .msg-info{background:var(--blue-bg);color:var(--blue-tx)}
 .hint{font-size:11px;color:var(--tx3);margin-top:4px}
-.stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:1rem}
-.stat-card{background:var(--bg2);border-radius:var(--r);padding:14px;text-align:center}
-.stat-val{font-size:22px;font-weight:600;color:var(--tx)}
-.stat-lbl{font-size:12px;color:var(--tx2);margin-top:2px}
-.stat-card.highlight{background:var(--blue-bg)}
-.stat-card.highlight .stat-val{color:var(--blue-tx)}
-.apost-item{border:1px solid var(--br);border-radius:var(--rl);padding:12px 15px;margin-bottom:10px;background:var(--bg)}
-.apost-hd{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;gap:10px}
-.apost-title{font-size:13px;font-weight:500;flex:1}
-.apost-date{font-size:11px;color:var(--tx3);flex-shrink:0}
 .img-drop{border:1.5px dashed var(--br2);border-radius:var(--r);padding:20px;text-align:center;cursor:pointer;background:var(--bg2);transition:background .15s;margin-bottom:10px}
 .img-drop:hover,.img-drop.drag{background:var(--blue-bg);border-color:var(--blue-tx)}
 .img-drop p{font-size:13px;color:var(--tx2);margin-top:6px}
@@ -268,7 +210,7 @@ textarea{resize:vertical;line-height:1.6}
 <div class="hd">
   <div>
     <h1>LinkedIn AI Post Studio</h1>
-    <p>Fetch AI trends · draft · schedule · publish</p>
+    <p>Fetch AI trends · draft · publish</p>
   </div>
 </div>
 
@@ -283,8 +225,6 @@ textarea{resize:vertical;line-height:1.6}
   <button class="navbtn"        id="nav-2" onclick="goNav(2)"><span class="nb-num">Step 3</span><span class="nb-lbl">Review</span></button>
   <button class="navbtn"        id="nav-3" onclick="goNav(3)"><span class="nb-num">Step 4</span><span class="nb-lbl">Publish</span></button>
   <button class="navbtn" id="nav-topic" onclick="goNav('topic')" style="flex:0 0 auto;padding:12px 18px;font-weight:500;color:var(--blue-tx);background:var(--blue-bg)"><span class="nb-lbl">🔍 Custom topic</span></button>
-  <button class="navbtn" id="nav-analytics" onclick="goNav('analytics')" style="flex:0 0 auto;padding:12px 18px;font-weight:500;color:var(--green-tx);background:var(--green-bg)"><span class="nb-lbl">📊 Analytics</span></button>
-  <button class="navbtn cal-btn" id="nav-cal" onclick="goNav('cal')"><span class="nb-lbl">📅 Calendar</span></button>
 </div>
 
 <!-- ══ STEP 1 ══ -->
@@ -409,12 +349,12 @@ textarea{resize:vertical;line-height:1.6}
 <!-- ══ STEP 3 ══ -->
 <div class="sec" id="sec-2">
   <p style="font-size:13px;color:var(--tx2);margin-bottom:1rem;line-height:1.6">
-    Edit drafts inline. <strong>Approve</strong> to publish now, <strong>Schedule</strong> to pick a date/time, or <strong>Reject</strong> to skip.
+    Edit drafts inline. <strong>Approve</strong> to publish now, or <strong>Reject</strong> to skip.
   </p>
 
-  <!-- LinkedIn creds (needed for scheduling) -->
+  <!-- LinkedIn creds (needed for publishing) -->
   <div class="card" style="margin-bottom:1rem">
-    <p style="font-size:13px;font-weight:500;margin-bottom:10px">LinkedIn credentials (for scheduling &amp; direct publish)</p>
+    <p style="font-size:13px;font-weight:500;margin-bottom:10px">LinkedIn credentials (for direct publish)</p>
     <div class="two">
       <div><label>Access token</label><input type="password" id="r-token" placeholder="AQV..."/></div>
       <div><label>Member URN</label><input type="text" id="r-urn" placeholder="urn:li:person:XXXX"/></div>
@@ -432,7 +372,6 @@ textarea{resize:vertical;line-height:1.6}
 <div class="sec" id="sec-3">
   <div class="metrics">
     <div class="metric"><div class="metric-v" id="sum-app">0</div><div class="metric-l">Approved</div></div>
-    <div class="metric"><div class="metric-v" id="sum-sch">0</div><div class="metric-l">Scheduled</div></div>
     <div class="metric"><div class="metric-v" id="sum-rej">0</div><div class="metric-l">Rejected</div></div>
     <div class="metric"><div class="metric-v" id="sum-tot">0</div><div class="metric-l">Total</div></div>
   </div>
@@ -530,6 +469,16 @@ textarea{resize:vertical;line-height:1.6}
           <label style="font-size:12px;color:var(--tx3)">Suggested hashtags — click to append</label>
           <div class="tag-row" id="topic-tag-row"></div>
         </div>
+        <div class="img-drop" id="img-drop-topic" onclick="document.getElementById('img-file-topic').click()"
+             ondragover="event.preventDefault();this.classList.add('drag')"
+             ondragleave="this.classList.remove('drag')"
+             ondrop="handleImgDrop(event,'topic')">
+          <span style="font-size:18px">🖼</span>
+          <p>Click or drag &amp; drop an image (JPG/PNG, max 10MB)</p>
+          <input type="file" id="img-file-topic" accept="image/*" style="display:none" onchange="handleImgSelect('topic',this)"/>
+          <img id="img-prev-topic" class="img-preview"/>
+        </div>
+        <div id="img-status-topic" style="font-size:12px;color:var(--tx3);margin-top:4px"></div>
         <div style="border:1px solid var(--br);border-radius:var(--rl);padding:1rem 1.25rem;margin-top:1rem">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
             <div style="width:40px;height:40px;border-radius:50%;background:var(--blue-bg);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:var(--blue-tx);flex-shrink:0">YN</div>
@@ -544,94 +493,11 @@ textarea{resize:vertical;line-height:1.6}
         <div style="display:flex;gap:8px;margin-top:.5rem;flex-wrap:wrap">
           <button class="btn" style="flex:1" onclick="regenTopicPost()">Regenerate</button>
           <button class="btn btn-fc" style="flex:1" onclick="factCheck('topic-draft-editor','fc-topic')" id="fc-btn-topic">🔍 Fact Check</button>
-          <button class="btn btn-sched" style="flex:1" onclick="toggleTopicSched()">Schedule</button>
           <button class="btn btn-p" style="flex:1" onclick="publishTopicPost()">Publish now</button>
         </div>
         <div class="fc-panel" id="fc-topic"></div>
-        <div id="topic-sched-picker" style="display:none;margin-top:10px;padding:12px;border:1px dashed var(--purple-tx);border-radius:var(--r);background:var(--purple-bg)">
-          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
-            <div style="flex:1"><label>Date</label><input type="date" id="topic-sched-date"/></div>
-            <div style="flex:1"><label>Time</label><input type="time" id="topic-sched-time" value="09:00"/></div>
-            <button class="btn btn-sched" onclick="confirmTopicSchedule()">Confirm</button>
-          </div>
-        </div>
         <div id="topic-pub-msg" style="margin-top:10px"></div>
       </div>
-    </div>
-  </div>
-</div>
-
-<!-- ══ ANALYTICS ══ -->
-<div class="sec" id="sec-analytics">
-  <div class="card" style="margin-bottom:1rem">
-    <p style="font-size:15px;font-weight:600;margin-bottom:4px">Post analytics</p>
-    <p style="font-size:13px;color:var(--tx2);margin-bottom:1rem">Fetch performance data for your published posts. Requires <code>r_member_social</code> scope on your token.</p>
-    <div class="two">
-      <div><label>Access token</label><input type="password" id="an-token" placeholder="AQV..."/></div>
-      <div><label>Post URN (optional — leave blank for all posts)</label><input type="text" id="an-urn" placeholder="urn:li:share:123456 or urn:li:ugcPost:123456"/></div>
-    </div>
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-p" style="flex:1" id="an-single-btn" onclick="fetchSingleAnalytics()">Fetch for this post</button>
-      <button class="btn" style="flex:1" id="an-all-btn" onclick="fetchAllAnalytics()">Fetch all published posts</button>
-    </div>
-    <div id="an-msg" style="font-size:13px;margin-top:10px"></div>
-  </div>
-
-  <!-- Single post stats -->
-  <div id="an-single-wrap" style="display:none;margin-bottom:1rem">
-    <p style="font-size:14px;font-weight:500;margin-bottom:10px">Post performance</p>
-    <div class="stat-grid">
-      <div class="stat-card highlight"><div class="stat-val" id="an-impressions">—</div><div class="stat-lbl">Impressions</div></div>
-      <div class="stat-card"><div class="stat-val" id="an-clicks">—</div><div class="stat-lbl">Clicks</div></div>
-      <div class="stat-card"><div class="stat-val" id="an-likes">—</div><div class="stat-lbl">Likes</div></div>
-      <div class="stat-card"><div class="stat-val" id="an-comments">—</div><div class="stat-lbl">Comments</div></div>
-      <div class="stat-card"><div class="stat-val" id="an-shares">—</div><div class="stat-lbl">Shares</div></div>
-      <div class="stat-card highlight"><div class="stat-val" id="an-engrate">—</div><div class="stat-lbl">Engagement rate</div></div>
-    </div>
-  </div>
-
-  <!-- All posts analytics table -->
-  <div id="an-all-wrap" style="display:none">
-    <p style="font-size:14px;font-weight:500;margin-bottom:10px">All published posts</p>
-    <div id="an-all-list"></div>
-  </div>
-</div>
-
-<!-- ══ CALENDAR ══ -->
-<div class="sec" id="sec-cal">
-
-  <div class="cal-toolbar">
-    <div>
-      <div class="cal-title" id="cal-title">March 2025</div>
-      <div style="font-size:12px;color:var(--tx3);margin-top:2px">Scheduled posts auto-publish at their set time</div>
-    </div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <div class="cal-nav">
-        <button class="btn" onclick="changeMonth(-1)">‹</button>
-        <button class="btn" onclick="changeMonth(1)">›</button>
-      </div>
-      <button class="btn" onclick="changeMonth(0)">Today</button>
-    </div>
-  </div>
-
-  <div class="day-hdrs" id="day-hdrs"></div>
-  <div class="cal-grid" id="cal-grid"></div>
-
-  <div class="divider"></div>
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-    <span class="sec-title" style="margin-bottom:0">All scheduled posts</span>
-    <button class="btn" style="font-size:12px;padding:6px 12px" onclick="loadCalendar()">↻ Refresh</button>
-  </div>
-  <div id="sched-list"></div>
-</div>
-
-<!-- Day detail modal -->
-<div class="modal-wrap" id="day-modal">
-  <div class="modal">
-    <h3 id="modal-date"></h3>
-    <div class="modal-posts" id="modal-posts"></div>
-    <div class="brow" style="margin-top:1rem">
-      <button class="btn" onclick="closeModal()">Close</button>
     </div>
   </div>
 </div>
@@ -643,9 +509,6 @@ const S={
   tone:   'Conversational & authentic',
   trends: [],
   posts:  [],
-  calYear: new Date().getFullYear(),
-  calMonth: new Date().getMonth(),
-  schedPosts: [],
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -661,14 +524,12 @@ async function api(path,body,method='POST'){
 }
 
 function goNav(n){
-  const navIds=['nav-0','nav-1','nav-2','nav-3','nav-topic','nav-analytics','nav-cal'];
+  const navIds=['nav-0','nav-1','nav-2','nav-3','nav-topic'];
   navIds.forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove('active');});
-  const activeId=n==='cal'?'nav-cal':n==='topic'?'nav-topic':'nav-'+n;
+  const activeId=n==='topic'?'nav-topic':'nav-'+n;
   const activeEl=document.getElementById(activeId);if(activeEl)activeEl.classList.add('active');
   document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));
   document.getElementById('sec-'+n).classList.add('active');
-  if(n==='cal') loadCalendar();
-  if(n==='analytics') prefillAnalyticsToken();
 }
 
 function markDone(n){document.getElementById('nav-'+n).classList.add('done');}
@@ -677,16 +538,6 @@ function selTone(el,t){document.querySelectorAll('.tbtn').forEach(b=>b.classList
 function selectedCats(){return[...document.querySelectorAll('#sec-0 .pill.on')].map(p=>p.textContent.trim().replace(/&/g,'&').replace(/amp;/g,''));}
 
 function setBtn(id,html,dis=false){const el=document.getElementById(id);el.innerHTML=html;el.disabled=dis;}
-
-function fmtDateTime(iso){
-  if(!iso) return '—';
-  const d=new Date(iso);
-  return d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-}
-function fmtDate(iso){
-  const d=new Date(iso);
-  return d.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
-}
 
 // ── Step 1 ── Fetch trends ────────────────────────────────────────────────────
 
@@ -750,7 +601,7 @@ async function draftPosts(){
       topic:t.title,summary:t.summary,why:t.why,
       tone:S.tone,length:document.getElementById('post-length').value,
     });
-    S.posts.push({id:t.id,topic:t.title,text:res.ok?res.text:'Could not generate. Try regenerating.',hashtags:res.ok?(res.hashtags||[]):[],verdict:null,schedTime:null});
+    S.posts.push({id:t.id,topic:t.title,text:res.ok?res.text:'Could not generate. Try regenerating.',hashtags:res.ok?(res.hashtags||[]):[],verdict:null});
   }
   renderReview();markDone(1);goNav(2);
   setBtn('draft-btn',`Draft posts for ${sel.length} topic${sel.length>1?'s':''} →`,false);
@@ -764,8 +615,8 @@ async function draftPosts(){
 function renderReview(){
   const list=document.getElementById('review-list');list.innerHTML='';
   S.posts.forEach((p,i)=>{
-    const cls=p.verdict==='approved'?' approved':p.verdict==='rejected'?' rejected':p.verdict==='scheduled'?' scheduled-card':'';
-    const vb=p.verdict?`<span class="vbadge ${p.verdict==='approved'?'vb-app':p.verdict==='rejected'?'vb-rej':'vb-sch'}">${p.verdict==='scheduled'?'Scheduled: '+fmtDateTime(p.schedTime):p.verdict}</span>`:'';
+    const cls=p.verdict==='approved'?' approved':p.verdict==='rejected'?' rejected':'';
+    const vb=p.verdict?`<span class="vbadge ${p.verdict==='approved'?'vb-app':'vb-rej'}">${p.verdict}</span>`:'';
     const div=document.createElement('div');div.className='rcard'+cls;div.id='rc-'+i;
     div.innerHTML=`
     <div class="rtop"><div class="rtopic">${p.topic}</div><div id="vb-${i}">${vb}</div></div>
@@ -776,14 +627,6 @@ function renderReview(){
       <div class="tag-row" id="tags-${i}">${(p.hashtags||[]).map((t,j)=>`<span class="tag-pill" onclick="appendHashtag(${i},${JSON.stringify(t)},this)">${esc(t)}</span>`).join('')}</div>
     </div>
 
-    <div class="sched-picker" id="sp-${i}">
-      <label style="margin-bottom:8px;font-weight:500">Pick schedule date &amp; time</label>
-      <div class="sched-row">
-        <div style="flex:1"><label>Date</label><input type="date" id="sd-${i}"/></div>
-        <div style="flex:1"><label>Time</label><input type="time" id="st-${i}" value="09:00"/></div>
-        <button class="btn btn-sched" onclick="confirmSchedule(${i})">Confirm</button>
-      </div>
-    </div>
     <div style="margin-bottom:10px">
       <label style="font-size:12px;color:var(--tx3)">Add image (optional)</label>
       <div class="img-drop" id="img-drop-${i}" onclick="document.getElementById('img-file-${i}').click()"
@@ -799,16 +642,12 @@ function renderReview(){
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn btn-ok"    onclick="setVerdict(${i},'approved')">✓ Approve</button>
-      <button class="btn btn-sched" onclick="toggleSched(${i})">📅 Schedule</button>
       <button class="btn btn-no"    onclick="setVerdict(${i},'rejected')">✗ Reject</button>
       <button class="btn btn-fc"    onclick="factCheck('pe-${i}','fc-${i}')" id="fc-btn-${i}">🔍 Fact Check</button>
       <button class="btn"           onclick="regenPost(${i})" style="margin-left:auto">↻ Regen</button>
     </div>
     <div class="fc-panel" id="fc-${i}"></div>`;
     list.appendChild(div);
-    // set default date to tomorrow
-    const tomorrow=new Date();tomorrow.setDate(tomorrow.getDate()+1);
-    document.getElementById('sd-'+i).value=tomorrow.toISOString().split('T')[0];
   });
 }
 
@@ -819,32 +658,10 @@ function updateCC(i){
   el.textContent=n+' / 3000';el.className='charcount'+(n>2800?' warn':'');
 }
 function setVerdict(i,v){
-  S.posts[i].verdict=v;S.posts[i].schedTime=null;
+  S.posts[i].verdict=v;
   const card=document.getElementById('rc-'+i);
   card.className='rcard'+(v==='approved'?' approved':v==='rejected'?' rejected':'');
   document.getElementById('vb-'+i).innerHTML=`<span class="vbadge ${v==='approved'?'vb-app':'vb-rej'}">${v}</span>`;
-  document.getElementById('sp-'+i).classList.remove('open');
-}
-function toggleSched(i){
-  const sp=document.getElementById('sp-'+i);sp.classList.toggle('open');
-}
-async function _confirmScheduleCore(i){
-  const date=document.getElementById('sd-'+i).value;
-  const time=document.getElementById('st-'+i).value;
-  if(!date||!time){alert('Please pick a date and time.');return;}
-  const iso=date+'T'+time;
-  const token=document.getElementById('r-token').value.trim();
-  const urn=document.getElementById('r-urn').value.trim();
-  if(!token||!urn){alert('Please enter your LinkedIn access token and member URN above before scheduling.');return;}
-
-  const res=await api('/api/schedule-post',{token,urn,text:S.posts[i].text,topic:S.posts[i].topic,scheduled_at:iso});
-  if(!res.ok){alert('Scheduling failed: '+res.error);return;}
-
-  S.posts[i].verdict='scheduled';S.posts[i].schedTime=iso;
-  const card=document.getElementById('rc-'+i);
-  card.className='rcard scheduled-card';
-  document.getElementById('vb-'+i).innerHTML=`<span class="vbadge vb-sch">Scheduled: ${fmtDateTime(iso)}</span>`;
-  document.getElementById('sp-'+i).classList.remove('open');
 }
 async function regenPost(i){
   const p=S.posts[i];const t=S.trends.find(x=>x.id===p.id)||{};
@@ -920,8 +737,7 @@ async function factCheck(editorId, panelId){
 
 function goToPublish(){
   const app=S.posts.filter(p=>p.verdict==='approved');
-  const sch=S.posts.filter(p=>p.verdict==='scheduled');
-  if(!app.length&&!sch.length){alert('Approve or schedule at least one post first.');return;}
+  if(!app.length){alert('Approve at least one post first.');return;}
   markDone(2);renderPublish();goNav(3);
   // sync creds
   const rt=document.getElementById('r-token').value;const ru=document.getElementById('r-urn').value;
@@ -933,20 +749,17 @@ function goToPublish(){
 
 function renderPublish(){
   const app=S.posts.filter(p=>p.verdict==='approved');
-  const sch=S.posts.filter(p=>p.verdict==='scheduled');
   const rej=S.posts.filter(p=>p.verdict==='rejected');
   document.getElementById('sum-app').textContent=app.length;
-  document.getElementById('sum-sch').textContent=sch.length;
   document.getElementById('sum-rej').textContent=rej.length;
   document.getElementById('sum-tot').textContent=S.posts.length;
   const list=document.getElementById('publish-list');list.innerHTML='';
-  [...app,...sch].forEach(p=>{
+  app.forEach(p=>{
     const div=document.createElement('div');
-    const issch=p.verdict==='scheduled';
-    div.className='pitem';div.style.borderColor=issch?'var(--purple-tx)':'var(--green-tx)';div.id='pi-'+p.id;
+    div.className='pitem';div.style.borderColor='var(--green-tx)';div.id='pi-'+p.id;
     div.innerHTML=`<div class="pitem-hd">
       <span class="pitem-title">${esc(p.topic)}</span>
-      <span class="ps ${issch?'b-sched ps-p':'ps-p'}" id="ps-${p.id}">${issch?'Scheduled '+fmtDateTime(p.schedTime):'Approved'}</span>
+      <span class="ps ps-p" id="ps-${p.id}">Approved</span>
     </div>
     <div class="pitem-exc">${esc(p.text)}</div>`;
     list.appendChild(div);
@@ -968,7 +781,7 @@ async function publishAll(){
   }
   const msg=document.getElementById('pub-msg');
   if(!token||!urn){msg.className='msg msg-err';msg.textContent='Please enter your access token and member URN.';return;}
-  if(!approved.length){msg.className='msg msg-err';msg.textContent='No approved posts (scheduled posts will auto-publish at their time).';return;}
+  if(!approved.length){msg.className='msg msg-err';msg.textContent='No approved posts.';return;}
   setBtn('pub-btn','<span class="spin"></span>Publishing…',true);msg.textContent='';
   let ok=0,fail=0,lastErr='';
   for(const p of approved){
@@ -985,181 +798,13 @@ async function publishAll(){
 }
 
 function copyAll(){
-  const posts=S.posts.filter(p=>p.verdict==='approved'||p.verdict==='scheduled');
-  if(!posts.length){alert('No approved/scheduled posts.');return;}
+  const posts=S.posts.filter(p=>p.verdict==='approved');
+  if(!posts.length){alert('No approved posts.');return;}
   const text=posts.map((p,i)=>`--- Post ${i+1}: ${p.topic} ---\n\n${p.text}`).join('\n\n\n');
   navigator.clipboard.writeText(text).then(()=>{
     const m=document.getElementById('copy-msg');m.style.display='block';setTimeout(()=>m.style.display='none',2500);
   });
 }
-
-// ── Calendar ──────────────────────────────────────────────────────────────────
-
-async function loadCalendar(){
-  const res=await api('/api/get-schedule',null,'GET').catch(()=>({ok:false,posts:[]}));
-  S.schedPosts=res.ok?res.posts:[];
-  renderCalendar();
-  renderSchedList();
-}
-
-function changeMonth(dir){
-  if(dir===0){S.calYear=new Date().getFullYear();S.calMonth=new Date().getMonth();}
-  else{S.calMonth+=dir;if(S.calMonth>11){S.calMonth=0;S.calYear++;}else if(S.calMonth<0){S.calMonth=11;S.calYear--;}}
-  loadCalendar();
-}
-
-function renderCalendar(){
-  const y=S.calYear,m=S.calMonth;
-  document.getElementById('cal-title').textContent=
-    new Date(y,m,1).toLocaleDateString('en',{month:'long',year:'numeric'});
-
-  // Day headers
-  const hdrs=document.getElementById('day-hdrs');
-  hdrs.innerHTML=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div class="day-hdr">${d}</div>`).join('');
-
-  const first=new Date(y,m,1).getDay();
-  const total=new Date(y,m+1,0).getDate();
-  const prevTotal=new Date(y,m,0).getDate();
-  const today=new Date();
-  const grid=document.getElementById('cal-grid');grid.innerHTML='';
-
-  const pad=(n)=>String(n).padStart(2,'0');
-  const dateKey=(d)=>`${y}-${pad(m+1)}-${pad(d)}`;
-
-  // Build a map of posts by date
-  const postsByDate={};
-  S.schedPosts.forEach(p=>{
-    const dkey=p.scheduled_at?p.scheduled_at.split('T')[0]:'';
-    if(!postsByDate[dkey]) postsByDate[dkey]=[];
-    postsByDate[dkey].push(p);
-  });
-
-  // Prev month days
-  for(let i=0;i<first;i++){
-    const d=prevTotal-first+1+i;
-    const el=document.createElement('div');el.className='calday other';
-    el.innerHTML=`<div class="dn">${d}</div>`;grid.appendChild(el);
-  }
-  // Current month days
-  for(let d=1;d<=total;d++){
-    const key=dateKey(d);
-    const isToday=today.getFullYear()===y&&today.getMonth()===m&&today.getDate()===d;
-    const dayPosts=postsByDate[key]||[];
-    const el=document.createElement('div');
-    el.className='calday'+(isToday?' today':'')+(dayPosts.length?' has-posts':'');
-    let html=`<div class="dn">${d}</div>`;
-    dayPosts.slice(0,2).forEach(p=>{
-      const cls=p.status==='published'?'pdot-pub':p.status==='failed'?'pdot-fail':'pdot-sch';
-      const time=p.scheduled_at?p.scheduled_at.split('T')[1]?.slice(0,5):'';
-      html+=`<div class="pdot ${cls}" title="${p.topic}">${time} ${p.topic.slice(0,16)}…</div>`;
-    });
-    if(dayPosts.length>2) html+=`<div class="more-dot">+${dayPosts.length-2} more</div>`;
-    el.innerHTML=html;
-    if(dayPosts.length){
-      el.onclick=(e)=>{if(e.target.classList.contains('pdot')||e.target.tagName!=='DIV')return;openDayModal(key,dayPosts);};
-      el.querySelectorAll('.pdot').forEach((dot,i)=>dot.onclick=(e)=>{e.stopPropagation();openDayModal(key,dayPosts);});
-    } else {
-      el.onclick=()=>{/* future: quick-add */};
-    }
-    grid.appendChild(el);
-  }
-  // Filler
-  const rem=42-first-total;
-  for(let d=1;d<=rem;d++){
-    const el=document.createElement('div');el.className='calday other';
-    el.innerHTML=`<div class="dn">${d}</div>`;grid.appendChild(el);
-  }
-}
-
-function renderSchedList(){
-  const list=document.getElementById('sched-list');
-  if(!S.schedPosts.length){list.innerHTML='<div class="empty">No scheduled posts yet. Draft a post and click Schedule.</div>';return;}
-  list.innerHTML='';
-  const sorted=[...S.schedPosts].sort((a,b)=>a.scheduled_at>b.scheduled_at?1:-1);
-  sorted.forEach(p=>{
-    const statusCls=p.status==='published'?'b-new':p.status==='failed'?'b-hot':'b-sched';
-    const statusLbl=p.status==='published'?'Published':p.status==='failed'?'Failed':'Scheduled';
-    const div=document.createElement('div');div.className='slist-item';div.id='sli-'+p.id;
-    div.innerHTML=`
-    <div class="sli-hd">
-      <span class="sli-topic">${esc(p.topic)}</span>
-      <span class="badge ${statusCls}">${statusLbl}</span>
-    </div>
-    <div class="sli-meta">📅 ${fmtDateTime(p.scheduled_at)}${p.published_at?' · Published '+fmtDateTime(p.published_at):''}${p.error?` · <span style="color:var(--red-tx)">${esc(p.error)}</span>`:''}</div>
-    <div class="sli-exc">${esc(p.text)}</div>
-    <div class="sli-actions">
-      ${p.status==='scheduled'?`<button class="btn btn-ok" onclick="publishNow('${p.id}')">Publish now</button>`:''}
-      ${p.status==='scheduled'?`<button class="btn btn-sched" onclick="showReschedule('${p.id}','${p.scheduled_at}')">Reschedule</button>`:''}
-      <button class="btn btn-no" onclick="deleteScheduled('${p.id}')">Delete</button>
-    </div>
-    <div id="rs-${p.id}" style="display:none;margin-top:10px;padding:10px;border:1px dashed var(--purple-tx);border-radius:var(--r);background:var(--purple-bg)">
-      <div class="sched-row">
-        <div style="flex:1"><label>New date</label><input type="date" id="rsd-${p.id}"/></div>
-        <div style="flex:1"><label>New time</label><input type="time" id="rst-${p.id}" value="09:00"/></div>
-        <button class="btn btn-sched" onclick="doReschedule('${p.id}')">Save</button>
-        <button class="btn" onclick="document.getElementById('rs-${p.id}').style.display='none'">Cancel</button>
-      </div>
-    </div>`;
-    list.appendChild(div);
-  });
-}
-
-function showReschedule(id,currentIso){
-  const el=document.getElementById('rs-'+id);el.style.display='block';
-  if(currentIso){
-    const parts=currentIso.split('T');
-    document.getElementById('rsd-'+id).value=parts[0]||'';
-    document.getElementById('rst-'+id).value=(parts[1]||'09:00').slice(0,5);
-  }
-}
-
-async function doReschedule(id){
-  const date=document.getElementById('rsd-'+id).value;
-  const time=document.getElementById('rst-'+id).value;
-  if(!date||!time){alert('Pick a date and time.');return;}
-  const res=await api(`/api/reschedule/${id}`,{scheduled_at:date+'T'+time});
-  if(res.ok) loadCalendar();else alert('Error: '+res.error);
-}
-
-async function publishNow(id){
-  if(!confirm('Publish this post to LinkedIn now?')) return;
-  const res=await api(`/api/publish-now/${id}`,{});
-  if(res.ok){alert('Published!');loadCalendar();}
-  else alert('Failed: '+res.error);
-}
-
-async function deleteScheduled(id){
-  if(!confirm('Delete this scheduled post?')) return;
-  const res=await fetch(`/api/delete-scheduled/${id}`,{method:'DELETE'}).then(r=>r.json());
-  if(res.ok) loadCalendar();
-}
-
-// ── Day modal ─────────────────────────────────────────────────────────────────
-
-function openDayModal(dateKey,posts){
-  document.getElementById('modal-date').textContent=fmtDate(dateKey+'T00:00');
-  const mp=document.getElementById('modal-posts');mp.innerHTML='';
-  posts.forEach(p=>{
-    const statusCls=p.status==='published'?'b-new':p.status==='failed'?'b-hot':'b-sched';
-    const div=document.createElement('div');
-    div.style.cssText='border:1px solid var(--br);border-radius:var(--r);padding:12px;margin-bottom:8px';
-    div.innerHTML=`
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-      <span style="font-size:13px;font-weight:500">${p.topic}</span>
-      <span class="badge ${statusCls}">${p.status}</span>
-    </div>
-    <div style="font-size:12px;color:var(--tx3);margin-bottom:6px">${fmtDateTime(p.scheduled_at)}</div>
-    <div style="font-size:13px;color:var(--tx2);white-space:pre-wrap;max-height:100px;overflow-y:auto">${p.text}</div>
-    ${p.status==='scheduled'?`<div style="display:flex;gap:6px;margin-top:8px">
-      <button class="btn btn-ok" style="font-size:12px;padding:5px 12px" onclick="publishNow('${p.id}')">Publish now</button>
-      <button class="btn btn-no" style="font-size:12px;padding:5px 12px" onclick="deleteScheduled('${p.id}');closeModal()">Delete</button>
-    </div>`:''}`;
-    mp.appendChild(div);
-  });
-  document.getElementById('day-modal').classList.add('open');
-}
-function closeModal(){document.getElementById('day-modal').classList.remove('open');}
-
 
 // ── Custom topic search ───────────────────────────────────────────────────────
 
@@ -1194,10 +839,6 @@ async function searchTopic(){
   const li = await api('/api/li-prefill',null,'GET').catch(()=>({}));
   if(li.token){document.getElementById('topic-token').value=li.token;}
   if(li.urn)  {document.getElementById('topic-urn').value=li.urn;}
-
-  // default schedule date to tomorrow
-  const tom=new Date();tom.setDate(tom.getDate()+1);
-  document.getElementById('topic-sched-date').value=tom.toISOString().split('T')[0];
 }
 
 function renderTopicResults(){
@@ -1296,35 +937,6 @@ function updateTopicCC(){
   document.getElementById('topic-preview').textContent=document.getElementById('topic-draft-editor').value||'Preview appears here.';
 }
 
-function toggleTopicSched(){
-  const p=document.getElementById('topic-sched-picker');
-  p.style.display=p.style.display==='none'?'block':'none';
-}
-
-async function confirmTopicSchedule(){
-  const date=document.getElementById('topic-sched-date').value;
-  const time=document.getElementById('topic-sched-time').value;
-  const token=document.getElementById('topic-token').value.trim();
-  const urn=document.getElementById('topic-urn').value.trim();
-  const text=document.getElementById('topic-draft-editor').value.trim();
-  const topic=document.getElementById('topic-input').value.trim();
-  const msg=document.getElementById('topic-pub-msg');
-
-  if(!date||!time){alert('Pick a date and time.');return;}
-  if(!token||!urn){alert('Enter your LinkedIn access token and member URN.');return;}
-  if(!text){alert('No post text to schedule.');return;}
-
-  const res=await api('/api/schedule-post',{token,urn,text,topic,scheduled_at:date+'T'+time});
-  if(res.ok){
-    msg.className='msg msg-ok';
-    msg.textContent='Scheduled for '+date+' at '+time+'!';
-    document.getElementById('topic-sched-picker').style.display='none';
-  } else {
-    msg.className='msg msg-err';
-    msg.textContent='Schedule failed: '+res.error;
-  }
-}
-
 async function publishTopicPost(){
   const token=document.getElementById('topic-token').value.trim();
   const urn=document.getElementById('topic-urn').value.trim();
@@ -1337,12 +949,16 @@ async function publishTopicPost(){
   const btn=document.querySelector('#topic-draft-wrap .btn-p');
   if(btn){btn.innerHTML='<span class="spin"></span>Publishing…';btn.disabled=true;}
 
-  const res=await api('/api/publish',{token,urn,text});
+  let assetUrn='';
+  if(postImages['topic']?.file){
+    assetUrn=await uploadImageForPost('topic',token,urn);
+  }
+
+  const res=await api('/api/publish',{token,urn,text,asset_urn:assetUrn});
 
   if(btn){btn.innerHTML='Publish now';btn.disabled=false;}
 
-  if(res.ok&&!res.skipped){msg.className='msg msg-ok';msg.textContent='Published to LinkedIn!';}
-  else if(res.skipped){msg.className='msg msg-info';msg.textContent='Already published by scheduler.';}
+  if(res.ok){msg.className='msg msg-ok';msg.textContent='Published to LinkedIn!';}
   else{msg.className='msg msg-err';msg.textContent='Failed: '+res.error;}
 }
 
@@ -1401,114 +1017,6 @@ async function uploadImageForPost(i, token, urn) {
     return '';
   }
 }
-
-// confirmSchedule: upload any pending image first, then schedule
-async function confirmSchedule(i) {
-  const token = document.getElementById('r-token').value.trim();
-  const urn   = document.getElementById('r-urn').value.trim();
-  if (postImages[i]?.file && !postImages[i]?.assetUrn) {
-    await uploadImageForPost(i, token, urn);
-  }
-  S.posts[i].assetUrn = postImages[i]?.assetUrn || '';
-  await _confirmScheduleCore(i);
-}
-
-// ── Analytics ─────────────────────────────────────────────────────────────────
-
-async function fetchSingleAnalytics() {
-  const token    = document.getElementById('an-token').value.trim();
-  const post_urn = document.getElementById('an-urn').value.trim();
-  const msg      = document.getElementById('an-msg');
-
-  if (!token)    { msg.className='msg msg-err'; msg.textContent='Enter your access token.'; return; }
-  if (!post_urn) { msg.className='msg msg-err'; msg.textContent='Enter a post URN.'; return; }
-
-  setBtn('an-single-btn', '<span class="spin spin-dark"></span>Fetching…', true);
-  msg.textContent = '';
-
-  const res = await api('/api/post-analytics', { token, post_urn });
-  setBtn('an-single-btn', 'Fetch for this post', false);
-
-  if (!res.ok) {
-    msg.className='msg msg-err';
-    msg.textContent = res.error;
-    return;
-  }
-  const s = res.stats;
-  document.getElementById('an-impressions').textContent = s.impressions.toLocaleString();
-  document.getElementById('an-clicks').textContent      = s.clicks.toLocaleString();
-  document.getElementById('an-likes').textContent       = s.likes.toLocaleString();
-  document.getElementById('an-comments').textContent    = s.comments.toLocaleString();
-  document.getElementById('an-shares').textContent      = s.shares.toLocaleString();
-  document.getElementById('an-engrate').textContent     = s.engagement_rate + '%';
-  document.getElementById('an-single-wrap').style.display = 'block';
-  document.getElementById('an-all-wrap').style.display    = 'none';
-  msg.className = 'msg msg-ok';
-  msg.textContent = 'Analytics loaded for ' + post_urn;
-}
-
-async function fetchAllAnalytics() {
-  const token = document.getElementById('an-token').value.trim();
-  const msg   = document.getElementById('an-msg');
-
-  if (!token) { msg.className='msg msg-err'; msg.textContent='Enter your access token.'; return; }
-
-  setBtn('an-all-btn', '<span class="spin spin-dark"></span>Fetching all posts…', true);
-  msg.textContent = '';
-
-  const res = await api('/api/all-post-analytics', { token });
-  setBtn('an-all-btn', 'Fetch all published posts', false);
-
-  if (!res.ok) { msg.className='msg msg-err'; msg.textContent=res.error; return; }
-  if (!res.results.length) {
-    msg.className='msg msg-info';
-    msg.textContent = res.message || 'No published posts found.';
-    return;
-  }
-
-  const list = document.getElementById('an-all-list');
-  list.innerHTML = '';
-  res.results.forEach(r => {
-    const s = r.stats;
-    const div = document.createElement('div');
-    div.className = 'apost-item';
-    if (s) {
-      div.innerHTML = `
-        <div class="apost-hd">
-          <span class="apost-title">${r.topic || 'Post'}</span>
-          <span class="apost-date">${r.published_at ? r.published_at.slice(0,10) : ''}</span>
-        </div>
-        <div class="stat-grid" style="margin-bottom:0">
-          <div class="stat-card highlight"><div class="stat-val">${s.impressions.toLocaleString()}</div><div class="stat-lbl">Impressions</div></div>
-          <div class="stat-card"><div class="stat-val">${s.likes}</div><div class="stat-lbl">Likes</div></div>
-          <div class="stat-card"><div class="stat-val">${s.comments}</div><div class="stat-lbl">Comments</div></div>
-          <div class="stat-card"><div class="stat-val">${s.shares}</div><div class="stat-lbl">Shares</div></div>
-          <div class="stat-card"><div class="stat-val">${s.clicks}</div><div class="stat-lbl">Clicks</div></div>
-          <div class="stat-card highlight"><div class="stat-val">${s.engagement_rate}%</div><div class="stat-lbl">Engagement</div></div>
-        </div>`;
-    } else {
-      div.innerHTML = `
-        <div class="apost-hd">
-          <span class="apost-title">${r.topic || 'Post'}</span>
-          <span class="apost-date">${r.published_at ? r.published_at.slice(0,10) : ''}</span>
-        </div>
-        <p style="font-size:13px;color:var(--red-tx)">${r.error || 'No stats available'}</p>`;
-    }
-    list.appendChild(div);
-  });
-
-  document.getElementById('an-single-wrap').style.display = 'none';
-  document.getElementById('an-all-wrap').style.display    = 'block';
-  msg.className = 'msg msg-ok';
-  msg.textContent = `Loaded analytics for ${res.results.length} post${res.results.length>1?'s':''}.`;
-}
-
-// Pre-fill analytics token from credentials
-function prefillAnalyticsToken() {
-  const t = document.getElementById('r-token')?.value || document.getElementById('p-token')?.value || '';
-  if (t) document.getElementById('an-token').value = t;
-}
-
 
 // ── Seen cache ────────────────────────────────────────────────────────────────
 

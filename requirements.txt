@@ -10,9 +10,6 @@ requests>=2.31.0
 # ── Environment variable loading ───────────────────────────────────────────────
 python-dotenv>=1.0.0
 
-# ── Background scheduler (auto-publish scheduled posts) ───────────────────────
-APScheduler>=3.10.0
-
 # ── Web search — DuckDuckGo (no API key needed) ────────────────────────────────
 ddgs>=0.1.0
 

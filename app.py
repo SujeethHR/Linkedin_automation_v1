@@ -8,21 +8,18 @@ Open: http://localhost:5001
 Features:
   - AI trend fetching (DuckDuckGo + RSS + Google Trends + Twitter/X)
   - Post drafting with hashtags
-  - Calendar + scheduler (APScheduler auto-publishes)
   - LinkedIn publishing (text + image posts)
-  - Post analytics (memberCreatorPostAnalytics)
   - Seen-articles cache (no repeated content)
   - Custom topic search (news + research papers)
 """
 
-import os, json, re, uuid, requests, time, threading, logging
+import os, json, re, requests, time, threading, logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
 from urllib.parse import quote as url_quote
 from xml.etree import ElementTree as ET
 from flask import Flask, render_template, request, jsonify
 from dotenv import load_dotenv
-from apscheduler.schedulers.background import BackgroundScheduler
 
 try:
     from ddgs import DDGS
@@ -41,8 +38,7 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
-# ── File-write locks (prevent corruption from concurrent scheduler + web requests) ─
-_sched_lock = threading.Lock()
+# ── File-write locks (prevent corruption from concurrent web requests) ─────────
 _seen_lock  = threading.Lock()
 
 import os as _os
@@ -59,7 +55,6 @@ LINKEDIN_POSTS_URL   = "https://api.linkedin.com/rest/posts"
 LINKEDIN_IMAGES_URL  = "https://api.linkedin.com/rest/images"
 LINKEDIN_TOKEN    = os.getenv("LINKEDIN_TOKEN",    "")
 LINKEDIN_URN      = os.getenv("LINKEDIN_URN",      "")
-SCHEDULE_FILE     = _os.path.join(_data_dir, "schedule.json")
 SEEN_FILE         = _os.path.join(_data_dir, "seen_articles.json")
 
 # ── RSS feeds ──────────────────────────────────────────────────────────────────
@@ -202,24 +197,6 @@ def mark_seen(titles: list, urls: list):
 def clear_seen_cache():
     save_seen({})
 
-# ── Schedule persistence ───────────────────────────────────────────────────────
-
-def load_schedule():
-    if os.path.exists(SCHEDULE_FILE):
-        try:
-            with open(SCHEDULE_FILE) as f:
-                return json.load(f)
-        except Exception:
-            pass
-    return []
-
-def save_schedule(posts):
-    tmp = SCHEDULE_FILE + ".tmp"
-    with _sched_lock:
-        with open(tmp, "w") as f:
-            json.dump(posts, f, indent=2)
-        os.replace(tmp, SCHEDULE_FILE)
-
 # ── LinkedIn image upload ──────────────────────────────────────────────────────
 
 def upload_image_to_linkedin(token: str, urn: str, image_bytes: bytes, mime_type: str = "image/jpeg") -> tuple:
@@ -306,34 +283,6 @@ def do_publish(token, urn, text, asset_urn: str = "") -> tuple:
         return False, f"LinkedIn {resp.status_code}: {msg}{hint}"
     except requests.exceptions.RequestException as e:
         return False, str(e)
-
-# ── APScheduler ────────────────────────────────────────────────────────────────
-
-def check_scheduled_posts():
-    posts   = load_schedule()
-    now     = datetime.now()
-    changed = False
-    for post in posts:
-        if post.get("status") != "scheduled":
-            continue
-        try:
-            due = datetime.fromisoformat(post["scheduled_at"])
-        except Exception:
-            continue
-        if now >= due:
-            ok, result = do_publish(post.get("token",""), post.get("urn",""), post.get("text",""))
-            post["status"]       = "published" if ok else "failed"
-            post["published_at"] = now.isoformat()
-            post["post_urn"]     = result if ok else ""
-            post["error"]        = "" if ok else result
-            changed = True
-            logger.info(f"[scheduler] {'✓' if ok else '✗'} {post.get('topic','')[:60]} — {post['status']}")
-    if changed:
-        save_schedule(posts)
-
-scheduler = BackgroundScheduler()
-scheduler.add_job(check_scheduled_posts, "interval", minutes=1, id="publish_check")
-scheduler.start()
 
 # ── Abacus ChatLLM ─────────────────────────────────────────────────────────────
 
@@ -858,19 +807,9 @@ def publish():
     if not urn:   return jsonify({"ok": False, "error": "LinkedIn member URN required."}), 400
     if not text:  return jsonify({"ok": False, "error": "Post text is empty."}), 400
 
-    already = any(p.get("status") == "published" and p.get("text","").strip() == text
-                  for p in load_schedule())
-    if already:
-        return jsonify({"ok": True, "message": "Already published by scheduler.", "skipped": True})
-
     ok, result = do_publish(token, urn, text, asset_urn)
     if ok:
-        posts = load_schedule()
-        for p in posts:
-            if p.get("text","").strip() == text and not p.get("post_urn"):
-                p["post_urn"] = result
-        save_schedule(posts)
-        return jsonify({"ok": True, "message": "Published!", "post_urn": result, "skipped": False})
+        return jsonify({"ok": True, "message": "Published!", "post_urn": result})
     return jsonify({"ok": False, "error": result}), 400
 
 # Debug publish
@@ -941,155 +880,6 @@ def debug_publish():
     except Exception as e:
         report["checks"].append({"step":"test_publish","ok":False,"msg":f"Network error: {e}"})
     return jsonify(report)
-
-# Analytics
-@app.route("/api/post-analytics", methods=["POST"])
-def post_analytics():
-    body     = request.json or {}
-    token    = body.get("token","").strip() or LINKEDIN_TOKEN
-    post_urn = body.get("post_urn","").strip()
-    if not token:    return jsonify({"ok":False,"error":"Token required."}), 400
-    if not post_urn: return jsonify({"ok":False,"error":"Post URN required."}), 400
-
-    encoded = url_quote(post_urn, safe="")
-    headers = {"Authorization":f"Bearer {token}","X-Restli-Protocol-Version":"2.0.0","LinkedIn-Version":LINKEDIN_API_VERSION}
-    url = (f"https://api.linkedin.com/rest/memberCreatorPostAnalytics"
-           f"?q=entity&entity={encoded}"
-           f"&timeIntervals=(timeRange:(start:{int((datetime.now().timestamp()-86400*30)*1000)},"
-           f"end:{int(datetime.now().timestamp()*1000)}),timeGranularityType:MONTH)")
-    try:
-        resp = requests.get(url, headers=headers, timeout=15)
-        if resp.ok:
-            totals = {"impressions":0,"clicks":0,"likes":0,"comments":0,"shares":0,"engagement_rate":0}
-            for el in resp.json().get("elements",[]):
-                s = el.get("totalShareStatistics",{})
-                totals["impressions"] += s.get("impressionCount",0)
-                totals["clicks"]      += s.get("clickCount",0)
-                totals["likes"]       += s.get("likeCount",0)
-                totals["comments"]    += s.get("commentCount",0)
-                totals["shares"]      += s.get("shareCount",0)
-            if totals["impressions"] > 0:
-                eng = totals["likes"]+totals["comments"]+totals["shares"]+totals["clicks"]
-                totals["engagement_rate"] = round((eng/totals["impressions"])*100, 2)
-            return jsonify({"ok":True,"stats":totals,"post_urn":post_urn})
-        elif resp.status_code == 403:
-            return jsonify({"ok":False,"error":"Access denied. Add r_member_social scope to your token."}), 403
-        else:
-            try: msg = resp.json().get("message", resp.text)
-            except Exception: msg = resp.text
-            return jsonify({"ok":False,"error":f"LinkedIn {resp.status_code}: {msg}"}), 400
-    except Exception as e:
-        return jsonify({"ok":False,"error":str(e)}), 500
-
-@app.route("/api/all-post-analytics", methods=["POST"])
-def all_post_analytics():
-    body  = request.json or {}
-    token = body.get("token","").strip() or LINKEDIN_TOKEN
-    if not token: return jsonify({"ok":False,"error":"Token required."}), 400
-    published = [p for p in load_schedule() if p.get("status") == "published"]
-    if not published:
-        return jsonify({"ok":True,"results":[],"message":"No published posts found."})
-    headers = {"Authorization":f"Bearer {token}","X-Restli-Protocol-Version":"2.0.0","LinkedIn-Version":LINKEDIN_API_VERSION}
-    results = []
-    for p in published:
-        post_urn = p.get("post_urn","")
-        if not post_urn:
-            results.append({"id":p.get("id"),"topic":p.get("topic"),"published_at":p.get("published_at"),
-                             "stats":None,"error":"No post URN stored."})
-            continue
-        encoded = url_quote(post_urn, safe="")
-        url = (f"https://api.linkedin.com/rest/memberCreatorPostAnalytics"
-               f"?q=entity&entity={encoded}"
-               f"&timeIntervals=(timeRange:(start:{int((datetime.now().timestamp()-86400*30)*1000)},"
-               f"end:{int(datetime.now().timestamp()*1000)}),timeGranularityType:MONTH)")
-        try:
-            resp = requests.get(url, headers=headers, timeout=15)
-            if resp.ok:
-                totals = {"impressions":0,"clicks":0,"likes":0,"comments":0,"shares":0,"engagement_rate":0}
-                for el in resp.json().get("elements",[]):
-                    s = el.get("totalShareStatistics",{})
-                    totals["impressions"] += s.get("impressionCount",0)
-                    totals["clicks"]      += s.get("clickCount",0)
-                    totals["likes"]       += s.get("likeCount",0)
-                    totals["comments"]    += s.get("commentCount",0)
-                    totals["shares"]      += s.get("shareCount",0)
-                if totals["impressions"] > 0:
-                    eng = totals["likes"]+totals["comments"]+totals["shares"]+totals["clicks"]
-                    totals["engagement_rate"] = round((eng/totals["impressions"])*100, 2)
-                results.append({"id":p.get("id"),"topic":p.get("topic"),"published_at":p.get("published_at"),
-                                 "post_urn":post_urn,"stats":totals,"error":None})
-            else:
-                results.append({"id":p.get("id"),"topic":p.get("topic"),"published_at":p.get("published_at"),
-                                 "post_urn":post_urn,"stats":None,"error":f"HTTP {resp.status_code}"})
-        except Exception as e:
-            results.append({"id":p.get("id"),"topic":p.get("topic"),"published_at":p.get("published_at"),
-                             "post_urn":post_urn,"stats":None,"error":str(e)})
-        time.sleep(0.3)
-    return jsonify({"ok":True,"results":results})
-
-# Schedule routes
-@app.route("/api/schedule-post", methods=["POST"])
-def schedule_post():
-    body         = request.json or {}
-    token        = body.get("token","").strip() or LINKEDIN_TOKEN
-    urn          = body.get("urn","").strip()   or LINKEDIN_URN
-    text         = body.get("text","").strip()
-    topic        = body.get("topic","")
-    scheduled_at = body.get("scheduled_at","")
-    if not token:        return jsonify({"ok":False,"error":"Token required."}), 400
-    if not urn:          return jsonify({"ok":False,"error":"URN required."}), 400
-    if not text:         return jsonify({"ok":False,"error":"Post text empty."}), 400
-    if not scheduled_at: return jsonify({"ok":False,"error":"Scheduled time required."}), 400
-    try: datetime.fromisoformat(scheduled_at)
-    except ValueError: return jsonify({"ok":False,"error":"Invalid date/time."}), 400
-    posts = load_schedule()
-    entry = {"id":str(uuid.uuid4()),"topic":topic,"text":text,"token":token,"urn":urn,
-             "scheduled_at":scheduled_at,"status":"scheduled","created_at":datetime.now().isoformat(),
-             "published_at":None,"post_urn":None,"error":None}
-    posts.append(entry)
-    save_schedule(posts)
-    return jsonify({"ok":True,"id":entry["id"],"message":f"Scheduled for {scheduled_at}"})
-
-@app.route("/api/get-schedule")
-def get_schedule():
-    posts = load_schedule()
-    posts.sort(key=lambda p: p.get("scheduled_at",""))
-    return jsonify({"ok":True,"posts":posts})
-
-@app.route("/api/delete-scheduled/<post_id>", methods=["DELETE"])
-def delete_scheduled(post_id):
-    save_schedule([p for p in load_schedule() if p.get("id") != post_id])
-    return jsonify({"ok":True})
-
-@app.route("/api/publish-now/<post_id>", methods=["POST"])
-def publish_now(post_id):
-    posts  = load_schedule()
-    target = next((p for p in posts if p.get("id") == post_id), None)
-    if not target: return jsonify({"ok":False,"error":"Post not found."}), 404
-    ok, result = do_publish(target.get("token",""), target.get("urn",""), target.get("text",""))
-    target["status"]       = "published" if ok else "failed"
-    target["published_at"] = datetime.now().isoformat()
-    target["post_urn"]     = result if ok else ""
-    target["error"]        = "" if ok else result
-    save_schedule(posts)
-    if ok: return jsonify({"ok":True,"message":"Published!"})
-    return jsonify({"ok":False,"error":result}), 400
-
-@app.route("/api/reschedule/<post_id>", methods=["POST"])
-def reschedule(post_id):
-    body     = request.json or {}
-    new_time = body.get("scheduled_at","")
-    try: datetime.fromisoformat(new_time)
-    except ValueError: return jsonify({"ok":False,"error":"Invalid date/time."}), 400
-    posts = load_schedule()
-    for p in posts:
-        if p.get("id") == post_id:
-            p["scheduled_at"] = new_time
-            p["status"]       = "scheduled"
-            p["error"]        = None
-            break
-    save_schedule(posts)
-    return jsonify({"ok":True})
 
 # ── Fact checker ──────────────────────────────────────────────────────────────
 
@@ -1218,7 +1008,4 @@ if __name__ == "__main__":
     print("   Open   →  http://localhost:5001\n")
     if not ABACUS_API_KEY:
         print("⚠️   ABACUS_API_KEY not set — add to .env and restart.\n")
-    try:
-        app.run(debug=False, port=5001, use_reloader=False)
-    finally:
-        scheduler.shutdown()
+    app.run(debug=False, port=5001, use_reloader=False)
