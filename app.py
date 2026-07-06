@@ -305,16 +305,48 @@ def call_chatllm(messages: list, max_tokens: int = 2000, _retries: int = 2) -> s
                 time.sleep(2 ** attempt)
     raise last_exc
 
+# ── SEO / AEO optimization ──────────────────────────────────────────────────────
+# Optional layer. When a draft request sets "seo": true, these extra rules are
+# appended to the generation prompt. When it's off/absent, prompts are unchanged,
+# so existing behavior is preserved byte-for-byte.
+
+def seo_rules_block(keyword: str = "") -> str:
+    block = (
+        "\nSEO/AEO optimization (apply naturally — never sacrifice readability):\n"
+        "- Lead the hook with the primary keyword or core topic phrase.\n"
+        "- Weave the primary keyword and 1-2 related terms in naturally, 2-3 times total across the post.\n"
+        "- Include one clear, self-contained sentence that directly answers the core question, "
+        "so answer engines (ChatGPT, Perplexity, Google AI Overviews) can quote it verbatim.\n"
+        "- Keep factual claims specific: real numbers, dates, and named entities beat vague statements.\n"
+        "- Use short, scannable paragraphs with a clear takeaway.\n"
+    )
+    if keyword.strip():
+        block += '- Primary keyword to target: "' + keyword.strip() + '".\n'
+    return block
+
 # ── Hashtag generator ──────────────────────────────────────────────────────────
 
-def generate_hashtags(topic: str, post_text: str, count: int = 5) -> list:
-    user_msg = (
-        "Generate exactly " + str(count) + " relevant LinkedIn hashtags.\n\n"
-        "Topic: " + topic + "\nPost excerpt:\n" + post_text[:400] + "\n\n"
-        "Rules: start with #, mix 2 broad + 2 niche + 1 trending, "
-        "CamelCase multi-word, no duplicates. "
-        "Return ONLY hashtags separated by spaces. Nothing else."
-    )
+def generate_hashtags(topic: str, post_text: str, count: int = 5,
+                      seo: bool = False, keyword: str = "") -> list:
+    if seo:
+        user_msg = (
+            "Generate exactly " + str(count) + " LinkedIn hashtags optimized for search reach and discovery.\n\n"
+            "Topic: " + topic +
+            (("\nPrimary keyword: " + keyword) if keyword.strip() else "") +
+            "\nPost excerpt:\n" + post_text[:400] + "\n\n"
+            "Rules: start with #, prioritize high-search-volume tags that are still topically relevant, "
+            "include one tag built from the primary keyword if given, "
+            "mix 2 broad high-reach + 2 niche + 1 trending, CamelCase multi-word, no duplicates. "
+            "Return ONLY hashtags separated by spaces. Nothing else."
+        )
+    else:
+        user_msg = (
+            "Generate exactly " + str(count) + " relevant LinkedIn hashtags.\n\n"
+            "Topic: " + topic + "\nPost excerpt:\n" + post_text[:400] + "\n\n"
+            "Rules: start with #, mix 2 broad + 2 niche + 1 trending, "
+            "CamelCase multi-word, no duplicates. "
+            "Return ONLY hashtags separated by spaces. Nothing else."
+        )
     try:
         result = call_chatllm(
             messages=[
@@ -661,6 +693,8 @@ def draft_post():
     why     = body.get("why", "")
     tone    = body.get("tone", "Conversational & authentic")
     length  = body.get("length", "medium")
+    seo     = bool(body.get("seo", False))
+    keyword = body.get("keyword", "")
     lg      = {"short":"under 300 characters","medium":"300 to 800 characters",
                "long":"800 to 1500 characters"}.get(length,"300 to 800 characters")
     user_msg = (
@@ -669,6 +703,7 @@ def draft_post():
         "\nTone: " + tone + "\nTarget length: " + lg + "\n\n"
         "Rules: first person, no hashtags, scroll-stopping first line, "
         "genuine not promotional, short paragraphs, end with question or CTA.\n"
+        + (seo_rules_block(keyword) if seo else "") +
         "Return ONLY the post text."
     )
     try:
@@ -679,7 +714,7 @@ def draft_post():
             ],
             max_tokens=1500,
         ).strip()
-        hashtags = generate_hashtags(topic, text)
+        hashtags = generate_hashtags(topic, text, seo=seo, keyword=keyword)
         return jsonify({"ok": True, "text": text, "hashtags": hashtags})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
@@ -736,6 +771,8 @@ def draft_from_topic():
     tone     = body.get("tone","Conversational & authentic")
     length   = body.get("length","medium")
     angle    = body.get("angle","")
+    seo      = bool(body.get("seo", False))
+    keyword  = body.get("keyword", "")
     if not topic:
         return jsonify({"ok": False, "error": "Topic is required."}), 400
     lg = {"short":"under 300 characters","medium":"300 to 800 characters",
@@ -760,6 +797,7 @@ def draft_from_topic():
         "\nSource material:\n" + sources_block +
         "\nRules: first person, no hashtags, scroll-stopping hook, "
         "reference specific source details, short paragraphs, end with question or CTA.\n"
+        + (seo_rules_block(keyword) if seo else "") +
         "Return ONLY the post text."
     )
     try:
@@ -770,7 +808,7 @@ def draft_from_topic():
             ],
             max_tokens=1500,
         ).strip()
-        hashtags = generate_hashtags(topic, text)
+        hashtags = generate_hashtags(topic, text, seo=seo, keyword=keyword)
         return jsonify({"ok": True, "text": text, "hashtags": hashtags})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
@@ -995,6 +1033,59 @@ def fact_check():
             except Exception:
                 pass
         return jsonify({"ok": False, "error": "Could not parse fact-check result.", "raw": verdict_raw}), 500
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ── SEO / AEO score ─────────────────────────────────────────────────────────────
+
+@app.route("/api/aeo-score", methods=["POST"])
+def aeo_score():
+    body      = request.json or {}
+    post_text = body.get("text", "").strip()
+    keyword   = body.get("keyword", "").strip()
+    if not post_text:
+        return jsonify({"ok": False, "error": "Post text is required."}), 400
+
+    raw = ""
+    try:
+        raw = call_chatllm(
+            messages=[
+                {"role": "system", "content":
+                    "You are an SEO and Answer Engine Optimization (AEO) analyst for LinkedIn content. "
+                    "You judge how well a post will surface in LinkedIn search, Google, and AI answer engines."},
+                {"role": "user", "content": (
+                    "Analyze this LinkedIn post for search (SEO) and answer-engine (AEO) performance.\n\n"
+                    + (('Target keyword: "' + keyword + '"\n\n') if keyword else "")
+                    + "Post:\n" + post_text + "\n\n"
+                    "Score each dimension 0-100:\n"
+                    "- keyword_presence: is the target keyword / core topic present in the hook and body at a natural density?\n"
+                    "- quotability: does it contain self-contained factual sentences an AI answer engine could cite verbatim?\n"
+                    "- claim_clarity: are claims specific (numbers, dates, named entities) rather than vague?\n"
+                    "- structure: strong hook, short scannable paragraphs, clear takeaway?\n"
+                    "Then give an overall score (0-100) and 2-4 short, concrete improvement suggestions.\n\n"
+                    "Return ONLY valid JSON in this exact shape:\n"
+                    '{"overall":78,"keyword_presence":70,"quotability":80,"claim_clarity":75,'
+                    '"structure":85,"suggestions":["...","..."]}'
+                )},
+            ],
+            max_tokens=600,
+        )
+        raw = raw.strip()
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:].strip()
+        result = json.loads(raw)
+        return jsonify({"ok": True, **result})
+    except json.JSONDecodeError:
+        m = re.search(r"\{.*\}", raw, re.DOTALL)
+        if m:
+            try:
+                return jsonify({"ok": True, **json.loads(m.group())})
+            except Exception:
+                pass
+        return jsonify({"ok": False, "error": "Could not parse AEO result.", "raw": raw}), 500
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 

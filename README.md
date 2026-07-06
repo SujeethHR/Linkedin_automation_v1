@@ -1,6 +1,6 @@
 # LinkedIn AI Post Studio
 
-A locally-run web app that helps you research industry trends, write LinkedIn posts with AI, fact-check them against live web sources, and publish them — all from your browser.
+A locally-run web app that helps you research industry trends, write LinkedIn posts with AI, fact-check them against live web sources, optimize them for search and AI answer engines, and publish them — all from your browser.
 
 You run it on your own computer. Nothing is hosted, nothing is sent to a third-party service except the Abacus.AI API (for text generation) and LinkedIn's API (for publishing).
 
@@ -14,6 +14,7 @@ From there you can:
 
 - Edit the draft directly in the browser
 - **Fact-check the post against live web results before publishing**
+- **Optionally optimize the draft and hashtags for search + AI answer engines (SEO / AEO), and score any post 0–100**
 - Add an image (drag & drop or click to upload)
 - Click to add suggested hashtags
 - Publish immediately to LinkedIn
@@ -67,6 +68,21 @@ Results appear inline below the editor. Each claim is classified and color-coded
 An overall accuracy score (0–100) and verdict are shown at the top, along with clickable source links for each claim.
 
 The fact checker is available in both the Step 3 review cards and the Custom Topic draft panel.
+
+---
+
+## SEO / AEO optimization
+
+An optional **SEO / AEO optimization** toggle is available in both the main flow (Step 1 settings) and the Custom Topic panel. It is **off by default** — when off, drafts and hashtags are generated exactly as before, so nothing existing changes.
+
+When you turn it **on** (and optionally enter a primary keyword/phrase):
+
+- **Search-friendly drafts** — the AI leads the hook with your keyword, weaves it in naturally 2–3 times, keeps claims specific (numbers, dates, named entities), and includes one self-contained sentence that AI answer engines (ChatGPT, Perplexity, Google AI Overviews) can quote verbatim.
+- **Search-tuned hashtags** — hashtag suggestions are biased toward higher-reach, discoverable tags, including one built from your keyword.
+
+Every draft also has an **"AEO Score"** button (next to Fact Check) that rates the post 0–100 on four dimensions — **keyword presence, quotability, claim clarity, and structure** — and returns concrete suggestions to improve it. It works whether or not the toggle was on when drafting.
+
+> AEO (Answer Engine Optimization) targets how LinkedIn posts get surfaced and cited by AI answer engines, in addition to classic search. Because this app runs locally, this optimizes the **content it generates for LinkedIn** — there is no public website to crawl.
 
 ---
 
@@ -167,7 +183,7 @@ The app works in four steps, shown as tabs across the top.
 
 **Step 1 — Fetch**
 
-Choose the topic categories you want news about (for example, "AI models & releases" or "Cybersecurity news"). Set your preferred tone, post length, and how many topics to fetch. Then click "Fetch latest AI trends."
+Choose the topic categories you want news about (for example, "AI models & releases" or "Cybersecurity news"). Set your preferred tone, post length, and how many topics to fetch. Optionally flip on **SEO / AEO optimization** (and enter a primary keyword) to have drafts and hashtags tuned for search and AI answer engines. Then click "Fetch latest AI trends."
 
 The app searches the web, reads RSS feeds, and asks the AI to identify the most relevant recent stories. This takes 20–40 seconds depending on how many categories you selected.
 
@@ -180,6 +196,7 @@ You will see a list of trend cards. Each one shows the headline, a short summary
 The app drafts a LinkedIn post for each topic you selected. You can edit the text directly, add an image, click hashtags to append them, and then:
 
 - Click **"Fact Check"** to verify the post's claims against live web results before publishing
+- Click **"AEO Score"** to rate the post 0–100 for search + answer-engine readiness and get concrete improvement suggestions
 - Click **"Approve"** to mark the post ready to publish now
 - Click **"Reject"** to skip that post
 
@@ -189,7 +206,7 @@ A summary shows how many posts are approved and rejected. Click "Publish all app
 
 **Custom topic search**
 
-Click "Custom topic" in the top navigation if you want to research a specific subject rather than browse trending news. Enter any topic (for example, "AI in radiology" or "zero-trust security"), choose whether to search news, research papers, or both, and the app will find relevant sources. You can then pick which sources to include and generate a post from them. You can add an image (drag & drop or click), fact-check it, and publish it directly from here.
+Click "Custom topic" in the top navigation if you want to research a specific subject rather than browse trending news. Enter any topic (for example, "AI in radiology" or "zero-trust security"), choose whether to search news, research papers, or both, and the app will find relevant sources. You can then pick which sources to include and generate a post from them. The same **SEO / AEO optimization** toggle and keyword box are available here. You can add an image (drag & drop or click), fact-check it, score it with **AEO Score**, and publish it directly from here.
 
 ---
 

@@ -174,6 +174,30 @@ textarea{resize:vertical;line-height:1.6}
 .fc-source-link:hover{background:#378add15}
 .btn-fc{background:#f0f7ff;color:#1a56db;border-color:#a4cafe;font-weight:500}
 .btn-fc:hover{background:#dbeafe}
+/* ── SEO / AEO ── */
+.seo-box{border:1px solid var(--br);border-radius:var(--r);padding:12px 13px;margin-bottom:1rem;background:var(--bg2)}
+.seo-hd{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.seo-hd .seo-title{font-size:13px;font-weight:500;color:var(--tx);display:block}
+.seo-hd .seo-sub{font-size:11px;color:var(--tx3);display:block;margin-top:2px}
+.switch{position:relative;display:inline-block;width:40px;height:22px;flex:0 0 auto}
+.switch input{opacity:0;width:0;height:0}
+.switch .slider{position:absolute;cursor:pointer;inset:0;background:var(--br2);border-radius:22px;transition:.2s}
+.switch .slider:before{content:"";position:absolute;height:16px;width:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+.switch input:checked+.slider{background:#7c3aed}
+.switch input:checked+.slider:before{transform:translateX(18px)}
+.seo-kw{margin-top:11px;display:none}
+.seo-kw.show{display:block}
+.seo-kw label{font-size:12px;color:var(--tx3)}
+.btn-aeo{background:#f5f0ff;color:#6d28d9;border-color:#c4b5fd;font-weight:500}
+.btn-aeo:hover{background:#ede9fe}
+.aeo-bars{display:flex;flex-direction:column;gap:9px;margin:12px 0}
+.aeo-bar-row{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--tx2)}
+.aeo-bar-lbl{flex:0 0 118px}
+.aeo-bar-track{flex:1;height:8px;background:var(--br2);border-radius:6px;overflow:hidden}
+.aeo-bar-fill{height:100%;background:#7c3aed;border-radius:6px;transition:width .3s}
+.aeo-bar-val{flex:0 0 32px;text-align:right;font-weight:600;color:var(--tx)}
+.aeo-sug{font-size:12px;color:var(--tx2);line-height:1.5;margin:4px 0 0;padding-left:18px}
+.aeo-sug li{margin-bottom:4px}
 
 /* ── Misc ── */
 .divider{border:none;border-top:1px solid var(--br);margin:1.5rem 0}
@@ -317,6 +341,22 @@ textarea{resize:vertical;line-height:1.6}
         </select>
       </div>
     </div>
+    <div class="seo-box">
+      <div class="seo-hd">
+        <span>
+          <span class="seo-title">📈 SEO / AEO optimization</span>
+          <span class="seo-sub">Tune drafts &amp; hashtags for search and AI answer engines</span>
+        </span>
+        <label class="switch">
+          <input type="checkbox" id="seo-toggle" onchange="toggleSeo('seo-toggle','seo-kw')"/>
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="seo-kw" id="seo-kw">
+        <label>Primary keyword / phrase (optional)</label>
+        <input type="text" id="seo-keyword" placeholder="e.g. AI agents, RAG pipelines, LLM evaluation..."/>
+      </div>
+    </div>
     <div class="field">
       <label>Additional sources</label>
       <div class="pills" id="source-toggles">
@@ -457,6 +497,22 @@ textarea{resize:vertical;line-height:1.6}
         <label>Custom angle (optional)</label>
         <input type="text" id="topic-angle" placeholder="e.g. focus on indie devs, write from a skeptic's view..."/>
       </div>
+      <div class="seo-box">
+        <div class="seo-hd">
+          <span>
+            <span class="seo-title">📈 SEO / AEO optimization</span>
+            <span class="seo-sub">Tune draft &amp; hashtags for search and AI answer engines</span>
+          </span>
+          <label class="switch">
+            <input type="checkbox" id="seo-toggle-topic" onchange="toggleSeo('seo-toggle-topic','seo-kw-topic')"/>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="seo-kw" id="seo-kw-topic">
+          <label>Primary keyword / phrase (optional)</label>
+          <input type="text" id="seo-keyword-topic" placeholder="e.g. AI agents, RAG pipelines, LLM evaluation..."/>
+        </div>
+      </div>
       <button class="btn btn-p btn-full" id="topic-draft-btn" onclick="draftFromTopic()" disabled>Generate post from selected sources</button>
     </div>
 
@@ -493,9 +549,11 @@ textarea{resize:vertical;line-height:1.6}
         <div style="display:flex;gap:8px;margin-top:.5rem;flex-wrap:wrap">
           <button class="btn" style="flex:1" onclick="regenTopicPost()">Regenerate</button>
           <button class="btn btn-fc" style="flex:1" onclick="factCheck('topic-draft-editor','fc-topic')" id="fc-btn-topic">🔍 Fact Check</button>
+          <button class="btn btn-aeo" style="flex:1" onclick="aeoScore('topic-draft-editor','aeo-topic','seo-keyword-topic')" id="aeo-btn-topic">📈 AEO Score</button>
           <button class="btn btn-p" style="flex:1" onclick="publishTopicPost()">Publish now</button>
         </div>
         <div class="fc-panel" id="fc-topic"></div>
+        <div class="fc-panel" id="aeo-topic"></div>
         <div id="topic-pub-msg" style="margin-top:10px"></div>
       </div>
     </div>
@@ -600,6 +658,7 @@ async function draftPosts(){
     const res=await api('/api/draft-post',{
       topic:t.title,summary:t.summary,why:t.why,
       tone:S.tone,length:document.getElementById('post-length').value,
+      ...seoParams(),
     });
     S.posts.push({id:t.id,topic:t.title,text:res.ok?res.text:'Could not generate. Try regenerating.',hashtags:res.ok?(res.hashtags||[]):[],verdict:null});
   }
@@ -644,9 +703,11 @@ function renderReview(){
       <button class="btn btn-ok"    onclick="setVerdict(${i},'approved')">✓ Approve</button>
       <button class="btn btn-no"    onclick="setVerdict(${i},'rejected')">✗ Reject</button>
       <button class="btn btn-fc"    onclick="factCheck('pe-${i}','fc-${i}')" id="fc-btn-${i}">🔍 Fact Check</button>
+      <button class="btn btn-aeo"   onclick="aeoScore('pe-${i}','aeo-${i}','seo-keyword')" id="aeo-btn-${i}">📈 AEO Score</button>
       <button class="btn"           onclick="regenPost(${i})" style="margin-left:auto">↻ Regen</button>
     </div>
-    <div class="fc-panel" id="fc-${i}"></div>`;
+    <div class="fc-panel" id="fc-${i}"></div>
+    <div class="fc-panel" id="aeo-${i}"></div>`;
     list.appendChild(div);
   });
 }
@@ -666,7 +727,7 @@ function setVerdict(i,v){
 async function regenPost(i){
   const p=S.posts[i];const t=S.trends.find(x=>x.id===p.id)||{};
   const ta=document.getElementById('pe-'+i);ta.value='Regenerating…';
-  const res=await api('/api/draft-post',{topic:p.topic,summary:t.summary||'',why:t.why||'',tone:S.tone,length:document.getElementById('post-length').value});
+  const res=await api('/api/draft-post',{topic:p.topic,summary:t.summary||'',why:t.why||'',tone:S.tone,length:document.getElementById('post-length').value,...seoParams()});
   const txt=res.ok?res.text:'Could not regenerate.';
   ta.value=txt;S.posts[i].text=txt;updateCC(i);
 }
@@ -732,6 +793,58 @@ async function factCheck(editorId, panelId){
     </div>
     <div class="fc-summary">${esc(res.summary||'')}</div>
     ${claimsHtml}
+  `;
+}
+
+// ── SEO / AEO ─────────────────────────────────────────────────────────────────
+
+function toggleSeo(toggleId, kwId){
+  const on=document.getElementById(toggleId).checked;
+  document.getElementById(kwId).classList.toggle('show', on);
+}
+
+/** Collect SEO flags for a draft request. suffix '' = main flow, 'topic' = custom flow. */
+function seoParams(suffix){
+  const t=suffix==='topic'?'seo-toggle-topic':'seo-toggle';
+  const k=suffix==='topic'?'seo-keyword-topic':'seo-keyword';
+  const toggle=document.getElementById(t);
+  if(!toggle||!toggle.checked) return {};
+  return { seo:true, keyword:(document.getElementById(k)?.value||'').trim() };
+}
+
+async function aeoScore(editorId, panelId, keywordId){
+  const ta=document.getElementById(editorId);
+  const panel=document.getElementById(panelId);
+  const btn=document.getElementById('aeo-btn-'+panelId.replace('aeo-',''));
+  if(!ta||!panel) return;
+  const text=ta.value.trim();
+  if(!text||text.length<20){panel.innerHTML='<p style="font-size:13px;color:var(--tx2)">Write a post first, then score it.</p>';panel.classList.add('open');return;}
+  const keyword=keywordId?(document.getElementById(keywordId)?.value.trim()||''):'';
+
+  if(btn){btn.disabled=true;btn.innerHTML='<span class="spin"></span>Scoring…';}
+  panel.innerHTML='<p style="font-size:13px;color:var(--tx2)">Analyzing SEO &amp; answer-engine readiness…</p>';
+  panel.classList.add('open');
+
+  const res=await api('/api/aeo-score',{text,keyword});
+  if(btn){btn.disabled=false;btn.innerHTML='📈 AEO Score';}
+
+  if(!res.ok){panel.innerHTML=`<p style="font-size:13px;color:var(--red-tx)">AEO scoring failed: ${esc(res.error||'Unknown error')}</p>`;return;}
+
+  const clamp=v=>Math.max(0,Math.min(100,Number(v)||0));
+  const bar=(lbl,v)=>`<div class="aeo-bar-row"><span class="aeo-bar-lbl">${lbl}</span><span class="aeo-bar-track"><span class="aeo-bar-fill" style="width:${clamp(v)}%"></span></span><span class="aeo-bar-val">${v??'—'}</span></div>`;
+  const sug=(res.suggestions||[]).map(s=>`<li>${esc(s)}</li>`).join('');
+  panel.innerHTML=`
+    <div class="fc-header"><div>
+      <span class="fc-score">${res.overall??'—'}<span> / 100</span></span>
+      <span class="fc-verdict" style="margin-left:8px;background:#ede9fe;color:#6d28d9">SEO / AEO</span>
+    </div></div>
+    <div class="aeo-bars">
+      ${bar('Keyword presence',res.keyword_presence)}
+      ${bar('Quotability',res.quotability)}
+      ${bar('Claim clarity',res.claim_clarity)}
+      ${bar('Structure',res.structure)}
+    </div>
+    ${sug?`<div class="fc-summary" style="margin-bottom:4px;font-weight:500">Suggestions to improve</div><ul class="aeo-sug">${sug}</ul>`:''}
   `;
 }
 
@@ -881,6 +994,7 @@ async function draftFromTopic(){
     tone:    document.getElementById('topic-tone').value,
     length:  document.getElementById('topic-length').value,
     angle:   document.getElementById('topic-angle').value.trim(),
+    ...seoParams('topic'),
   });
 
   setBtn('topic-draft-btn','Generate post from selected sources',false);
