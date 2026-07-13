@@ -1008,11 +1008,14 @@ def fact_check():
                     '- "sources": list of up to 2 relevant URLs from the evidence\n\n'
                     + evidence_text +
                     "\n\nAlso provide:\n"
-                    '- "overall_score": 0-100 accuracy score\n'
+                    '- "score": 0-100 accuracy score, judged honestly from the evidence across '
+                    "the full range — do not default to any particular number\n"
                     '- "verdict": "accurate" | "mostly_accurate" | "needs_review" | "contains_errors"\n'
                     '- "summary": 1-2 sentence overall assessment\n\n'
-                    "Return ONLY valid JSON in this exact shape:\n"
-                    '{"verdict":"...","score":85,"summary":"...","claims":[{"claim":"...","status":"verified","explanation":"...","sources":["url1"]}]}'
+                    "Return ONLY valid JSON in this exact shape (the <...> are placeholders — "
+                    "replace each with your own values):\n"
+                    '{"verdict":"<verdict>","score":<int>,"summary":"<text>","claims":'
+                    '[{"claim":"<text>","status":"<status>","explanation":"<text>","sources":["<url>"]}]}'
                 )},
             ],
             max_tokens=1500,
@@ -1063,10 +1066,13 @@ def aeo_score():
                     "- quotability: does it contain self-contained factual sentences an AI answer engine could cite verbatim?\n"
                     "- claim_clarity: are claims specific (numbers, dates, named entities) rather than vague?\n"
                     "- structure: strong hook, short scannable paragraphs, clear takeaway?\n"
-                    "Then give an overall score (0-100) and 2-4 short, concrete improvement suggestions.\n\n"
-                    "Return ONLY valid JSON in this exact shape:\n"
-                    '{"overall":78,"keyword_presence":70,"quotability":80,"claim_clarity":75,'
-                    '"structure":85,"suggestions":["...","..."]}'
+                    "Then compute overall as the average of the four dimensions (0-100), and give "
+                    "2-4 short, concrete improvement suggestions. Score honestly across the full "
+                    "0-100 range based only on this post — do not default to any particular number.\n\n"
+                    "Return ONLY valid JSON in this exact shape (the <int> are placeholders — "
+                    "replace each with your computed score):\n"
+                    '{"overall":<int>,"keyword_presence":<int>,"quotability":<int>,'
+                    '"claim_clarity":<int>,"structure":<int>,"suggestions":["...","..."]}'
                 )},
             ],
             max_tokens=600,
