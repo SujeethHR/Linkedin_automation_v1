@@ -6,6 +6,16 @@ You run it on your own computer. Nothing is hosted, nothing is sent to a third-p
 
 ---
 
+## Demo
+
+[![Watch the demo](thumbnail.png)](LinkedIn_AI_Post_Studio_demo.mp4)
+
+Click the thumbnail above (or open [LinkedIn_AI_Post_Studio_demo.mp4](LinkedIn_AI_Post_Studio_demo.mp4)) to watch a walkthrough of the app, from fetching trends to publishing a fact-checked post.
+
+For a look at how this project was scoped and run as a solo product owner / developer, see [CASE_STUDY.md](CASE_STUDY.md) (also available as a [PDF](CASE_STUDY.pdf)).
+
+---
+
 ## What it does
 
 You open the app in your browser, pick the topics you care about (AI, pharma, cybersecurity, cloud, etc.), and click one button to fetch the latest news from across the web. The app pulls articles from DuckDuckGo searches, 50+ RSS feeds, and optionally Google Trends. It then uses Abacus.AI to turn the freshest stories into draft LinkedIn posts, ready to edit and publish.
