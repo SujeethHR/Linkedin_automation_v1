@@ -50,7 +50,7 @@ app = Flask(__name__, template_folder=_template_folder)
 ABACUS_API_KEY    = os.getenv("ABACUS_API_KEY",    "")
 ABACUS_BASE_URL   = os.getenv("ABACUS_BASE_URL",   "https://routellm.abacus.ai/v1")
 ABACUS_MODEL      = os.getenv("ABACUS_MODEL",      "route-llm")
-LINKEDIN_API_VERSION = "202507"
+LINKEDIN_API_VERSION = os.getenv("LINKEDIN_API_VERSION", "202606")
 LINKEDIN_POSTS_URL   = "https://api.linkedin.com/rest/posts"
 LINKEDIN_IMAGES_URL  = "https://api.linkedin.com/rest/images"
 LINKEDIN_TOKEN    = os.getenv("LINKEDIN_TOKEN",    "")

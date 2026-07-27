@@ -165,7 +165,7 @@ This file is created automatically on first run in the working directory. There 
 | `LINKEDIN_TOKEN` | ✅ Yes | — | 60-day OAuth token |
 | `LINKEDIN_URN` | ✅ Yes | — | `urn:li:person:XXXXXXXX` |
 
-`LINKEDIN_API_VERSION` (currently `202507`) is set directly in `app.py`, not `.env` — see §10.
+| `LINKEDIN_API_VERSION` | No | `202606` | LinkedIn REST API version, `YYYYMM` — see §10 |
 
 ---
 
@@ -205,7 +205,7 @@ No elevated or partner-only scopes are required — every feature in the app wor
 
 ## 10. LinkedIn API Version
 
-The app calls LinkedIn's versioned REST API and sends a `LinkedIn-Version: YYYYMM` header (currently `202507`, set once in `app.py` as `LINKEDIN_API_VERSION`). LinkedIn keeps roughly the last 12 months of versions active; requests using an expired version return `426 NONEXISTENT_VERSION`. When that happens, bump `LINKEDIN_API_VERSION` in `app.py` to a recent `YYYYMM` value and restart the app.
+The app calls LinkedIn's versioned REST API and sends a `LinkedIn-Version: YYYYMM` header, read from the `LINKEDIN_API_VERSION` env var (default `202606`, set in `app.py`). LinkedIn keeps roughly the last 12 months of versions active; requests using an expired version return `426 NONEXISTENT_VERSION`. When that happens, set `LINKEDIN_API_VERSION` in `.env` to a recent `YYYYMM` value and restart the app.
 
 ---
 

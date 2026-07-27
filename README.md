@@ -261,13 +261,14 @@ The following topic categories are available as pills in the Fetch tab. Each map
 
 ## LinkedIn API version
 
-The app calls LinkedIn's versioned REST API (`/rest/posts` for publishing, `/rest/images` for image uploads). Every request sends a `LinkedIn-Version: YYYYMM` header, set once in `app.py` as `LINKEDIN_API_VERSION`.
+The app calls LinkedIn's versioned REST API (`/rest/posts` for publishing, `/rest/images` for image uploads). Every request sends a `LinkedIn-Version: YYYYMM` header, controlled by `LINKEDIN_API_VERSION`.
 
 LinkedIn only keeps roughly the last 12 months of versions active — older ones start returning a `426 NONEXISTENT_VERSION` error. If publishing or image uploads suddenly fail at once with that error, the version has expired and needs bumping:
 
-1. Open `app.py` and find `LINKEDIN_API_VERSION = "..."` near the top.
-2. Update it to a recent `YYYYMM` value (e.g. the current or previous month).
-3. Restart the app.
+1. Add `LINKEDIN_API_VERSION=YYYYMM` to your `.env`, using a recent value (e.g. the current or previous month).
+2. Restart the app.
+
+If it is not set in `.env`, the app falls back to the default baked into `app.py`.
 
 ---
 
@@ -291,7 +292,7 @@ LinkedIn prevents posting the same text twice in a short window. Edit the post t
 
 **LinkedIn 426 "NONEXISTENT_VERSION" error, or publishing/image upload fails with no clear reason**
 
-The `LINKEDIN_API_VERSION` value in `app.py` has expired — see [LinkedIn API version](#linkedin-api-version) above for how to update it.
+The `LINKEDIN_API_VERSION` value has expired — see [LinkedIn API version](#linkedin-api-version) above for how to update it.
 
 **"Publishing failed" with no detail**
 
