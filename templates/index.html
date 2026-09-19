@@ -341,6 +341,13 @@ textarea{resize:vertical;line-height:1.6}
         </select>
       </div>
     </div>
+    <div class="field"><label>Post format</label>
+      <select id="post-format">
+        <option value="standard" selected>Standard text post</option>
+        <option value="carousel">Document post (carousel outline) — highest dwell time</option>
+      </select>
+      <p class="hint">LinkedIn's Depth Score rewards posts people stay on. A carousel outline gives you slide-by-slide content to turn into a PDF; the caption still publishes directly.</p>
+    </div>
     <div class="seo-box">
       <div class="seo-hd">
         <span>
@@ -373,6 +380,7 @@ textarea{resize:vertical;line-height:1.6}
       <span id="cache-info">Seen cache: loading…</span>
       <button class="btn" style="font-size:12px;padding:5px 12px;color:var(--red-tx);border-color:var(--red-tx)" onclick="clearSeenCache()">Clear seen cache</button>
     </div>
+    <div id="cadence-banner" style="margin-top:10px"></div>
   </div>
 </div>
 
@@ -493,6 +501,12 @@ textarea{resize:vertical;line-height:1.6}
           </select>
         </div>
       </div>
+      <div class="field"><label>Post format</label>
+        <select id="topic-format">
+          <option value="standard" selected>Standard text post</option>
+          <option value="carousel">Document post (carousel outline) — highest dwell time</option>
+        </select>
+      </div>
       <div class="field">
         <label>Custom angle (optional)</label>
         <input type="text" id="topic-angle" placeholder="e.g. focus on indie devs, write from a skeptic's view..."/>
@@ -521,6 +535,8 @@ textarea{resize:vertical;line-height:1.6}
         <p style="font-size:14px;font-weight:500;margin-bottom:10px">Your draft</p>
         <textarea class="peditor" id="topic-draft-editor" style="min-height:200px" oninput="updateTopicCC()"></textarea>
         <div class="charcount" id="topic-cc">0 / 3000</div>
+        <div id="topic-link-warn" class="msg msg-err" style="display:none"></div>
+        <div id="topic-slides" style="display:none;margin-bottom:1rem"></div>
         <div style="margin-bottom:10px">
           <label style="font-size:12px;color:var(--tx3)">Suggested hashtags — click to append</label>
           <div class="tag-row" id="topic-tag-row"></div>
@@ -597,6 +613,99 @@ function selectedCats(){return[...document.querySelectorAll('#sec-0 .pill.on')].
 
 function setBtn(id,html,dis=false){const el=document.getElementById(id);el.innerHTML=html;el.disabled=dis;}
 
+// ── Algorithm-aware helpers (link penalty, carousel slides, cadence) ─────────
+
+function detectLinks(text){return (text||'').match(/https?:\/\/\S+|(?<!\w)www\.\S+/gi)||[];}
+
+function renderSlidesHtml(slides,hook,ctx){
+  const items=(slides||[]).map((s,i)=>`<div style="padding:8px 10px;border:1px solid var(--br);border-radius:var(--r);margin-bottom:6px;background:var(--bg2)">
+    <div style="font-size:11px;color:var(--tx3);margin-bottom:2px">Slide ${i+1}</div>
+    <div style="font-size:13px;font-weight:500">${esc(s.heading||'')}</div>
+    <div style="font-size:12px;color:var(--tx2);margin-top:2px">${esc(s.body||'')}</div>
+  </div>`).join('');
+  return `<div class="fc-panel open" style="margin-bottom:10px">
+    <div class="fc-summary" style="margin-bottom:8px"><strong>Carousel outline</strong> — LinkedIn's Depth Score rewards Document posts with the longest dwell time of any format.</div>
+    ${hook?`<div style="font-size:12px;color:var(--tx3);margin-bottom:8px"><em>Slide 1 hook:</em> ${esc(hook)}</div>`:''}
+    ${items}
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+      <button class="btn" style="flex:1" onclick="previewCarouselPdf('${ctx}')">📄 Preview PDF</button>
+      <button class="btn btn-p" style="flex:1" onclick="publishCarousel('${ctx}')">🖼 Publish as Document post</button>
+    </div>
+    <div id="carousel-status-${ctx}" style="margin-top:8px"></div>
+  </div>`;
+}
+
+/** Resolve slides/hook/caption/credentials for a carousel action. ctx is a post
+ *  index (Step 3 review card) or the string 'topic' (custom topic flow). */
+function carouselCtxData(ctx){
+  if(ctx==='topic'){
+    return {
+      slides: topicSlides, hook: topicHook,
+      captionEl: document.getElementById('topic-draft-editor'),
+      tokenEl: document.getElementById('topic-token'), urnEl: document.getElementById('topic-urn'),
+      topic: document.getElementById('topic-input').value.trim(), niche: '',
+    };
+  }
+  const i = ctx;
+  return {
+    slides: S.posts[i].slides, hook: S.posts[i].hook,
+    captionEl: document.getElementById('pe-'+i),
+    tokenEl: document.getElementById('r-token'), urnEl: document.getElementById('r-urn'),
+    topic: S.posts[i].topic, niche: document.getElementById('niche')?.value.trim()||'',
+  };
+}
+
+async function previewCarouselPdf(ctx){
+  const d=carouselCtxData(ctx);
+  const status=document.getElementById('carousel-status-'+ctx);
+  if(!d.slides||!d.slides.length){status.innerHTML='<span style="color:var(--red-tx);font-size:12px">No slides to preview.</span>';return;}
+  status.innerHTML='<span style="font-size:12px;color:var(--tx3)">Building PDF…</span>';
+  try{
+    const res=await fetch('/api/carousel-pdf-preview',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({hook:d.hook,slides:d.slides,topic:d.topic})});
+    if(!res.ok){status.innerHTML='<span style="color:var(--red-tx);font-size:12px">Could not build PDF.</span>';return;}
+    const blob=await res.blob();
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download='carousel-preview.pdf';document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),4000);
+    status.innerHTML='<span style="font-size:12px;color:var(--green-tx)">PDF downloaded — check it before publishing.</span>';
+  }catch(e){status.innerHTML='<span style="color:var(--red-tx);font-size:12px">Preview failed: '+esc(String(e))+'</span>';}
+}
+
+async function publishCarousel(ctx){
+  const d=carouselCtxData(ctx);
+  const status=document.getElementById('carousel-status-'+ctx);
+  const token=d.tokenEl?.value.trim()||'';
+  const urn=d.urnEl?.value.trim()||'';
+  const caption=d.captionEl?.value.trim()||'';
+  if(!token||!urn){status.innerHTML='<span style="color:var(--red-tx);font-size:12px">Enter your LinkedIn token and URN first.</span>';return;}
+  if(!d.slides||!d.slides.length){status.innerHTML='<span style="color:var(--red-tx);font-size:12px">No slides to publish.</span>';return;}
+  if(!caption){status.innerHTML='<span style="color:var(--red-tx);font-size:12px">Caption text is empty.</span>';return;}
+  status.innerHTML='<span class="spin"></span><span style="font-size:12px">Building PDF, uploading and publishing…</span>';
+  const res=await api('/api/publish-carousel',{token,urn,hook:d.hook,slides:d.slides,caption,topic:d.topic,niche:d.niche});
+  if(res.ok){
+    status.innerHTML=`<span style="font-size:12px;color:var(--green-tx)">✓ Carousel published!</span>`+(res.golden_hour_tip?`<br><strong style="font-size:12px">⏱ ${esc(res.golden_hour_tip)}</strong>`:'');
+    if(res.cadence) document.getElementById('cadence-banner').innerHTML=cadenceBannerHtml(res.cadence);
+  } else {
+    status.innerHTML=`<span style="color:var(--red-tx);font-size:12px">Failed: ${esc(res.error||'Unknown error')}</span>`;
+  }
+}
+
+function cadenceBannerHtml(c){
+  const msgs=[...(c.warnings||[])];
+  if(c.niche_drift_warning) msgs.push(c.niche_drift_warning);
+  if(!msgs.length) return '';
+  return `<div class="msg msg-info">${msgs.map(esc).join('<br>')}</div>`;
+}
+
+async function loadCadenceInfo(){
+  try{
+    const res=await fetch('/api/cadence-status').then(r=>r.json());
+    const el=document.getElementById('cadence-banner');
+    if(el && res.ok) el.innerHTML=cadenceBannerHtml(res);
+  }catch(_){}
+}
+
 // ── Step 1 ── Fetch trends ────────────────────────────────────────────────────
 
 async function fetchTrends(){
@@ -612,7 +721,7 @@ async function fetchTrends(){
     use_twitter: document.getElementById('src-twitter')?.classList.contains('on') ?? false,
   });
   setBtn('fetch-btn','Fetch latest AI trends',false);
-  loadCacheInfo();
+  loadCacheInfo();loadCadenceInfo();
   if(!res.ok){log.textContent='Error: '+(res.error||'Unknown');return;}
   log.textContent=`Found ${res.trends.length} trends.`;
   S.trends=res.trends.map((t,i)=>({...t,id:i,selected:false}));
@@ -654,13 +763,17 @@ async function draftPosts(){
   if(!sel.length) return;
   setBtn('draft-btn',`<span class="spin"></span>Drafting ${sel.length} post${sel.length>1?'s':''}…`,true);
   S.posts=[];
+  const fmt=document.getElementById('post-format')?.value||'standard';
   for(const t of sel){
     const res=await api('/api/draft-post',{
       topic:t.title,summary:t.summary,why:t.why,
       tone:S.tone,length:document.getElementById('post-length').value,
+      format:fmt,
       ...seoParams(),
     });
-    S.posts.push({id:t.id,topic:t.title,text:res.ok?res.text:'Could not generate. Try regenerating.',hashtags:res.ok?(res.hashtags||[]):[],verdict:null});
+    S.posts.push({id:t.id,topic:t.title,text:res.ok?res.text:'Could not generate. Try regenerating.',
+      hashtags:res.ok?(res.hashtags||[]):[],slides:res.ok?(res.slides||[]):[],hook:res.ok?(res.hook||''):'',
+      verdict:null});
   }
   renderReview();markDone(1);goNav(2);
   setBtn('draft-btn',`Draft posts for ${sel.length} topic${sel.length>1?'s':''} →`,false);
@@ -681,6 +794,8 @@ function renderReview(){
     <div class="rtop"><div class="rtopic">${p.topic}</div><div id="vb-${i}">${vb}</div></div>
     <textarea class="peditor" id="pe-${i}" oninput="saveEdit(${i})" onchange="updateCC(${i})">${p.text}</textarea>
     <div class="charcount" id="cc-${i}">${p.text.length} / 3000</div>
+    <div id="link-warn-${i}" class="msg msg-err" style="display:${detectLinks(p.text).length?'block':'none'}">⚠ Contains a link — LinkedIn penalizes a link in the body (or the first comment) the same way. Consider naming the source instead.</div>
+    ${p.slides&&p.slides.length?renderSlidesHtml(p.slides,p.hook,i):''}
     <div style="margin-bottom:8px">
       <label style="font-size:12px;color:var(--tx3)">Suggested hashtags — click to append</label>
       <div class="tag-row" id="tags-${i}">${(p.hashtags||[]).map((t,j)=>`<span class="tag-pill" onclick="appendHashtag(${i},${JSON.stringify(t)},this)">${esc(t)}</span>`).join('')}</div>
@@ -714,9 +829,12 @@ function renderReview(){
 
 function saveEdit(i){S.posts[i].text=document.getElementById('pe-'+i).value;updateCC(i);}
 function updateCC(i){
-  const n=document.getElementById('pe-'+i).value.length;
+  const val=document.getElementById('pe-'+i).value;
+  const n=val.length;
   const el=document.getElementById('cc-'+i);
   el.textContent=n+' / 3000';el.className='charcount'+(n>2800?' warn':'');
+  const lw=document.getElementById('link-warn-'+i);
+  if(lw) lw.style.display=detectLinks(val).length?'block':'none';
 }
 function setVerdict(i,v){
   S.posts[i].verdict=v;
@@ -727,9 +845,11 @@ function setVerdict(i,v){
 async function regenPost(i){
   const p=S.posts[i];const t=S.trends.find(x=>x.id===p.id)||{};
   const ta=document.getElementById('pe-'+i);ta.value='Regenerating…';
-  const res=await api('/api/draft-post',{topic:p.topic,summary:t.summary||'',why:t.why||'',tone:S.tone,length:document.getElementById('post-length').value,...seoParams()});
+  const fmt=document.getElementById('post-format')?.value||'standard';
+  const res=await api('/api/draft-post',{topic:p.topic,summary:t.summary||'',why:t.why||'',tone:S.tone,length:document.getElementById('post-length').value,format:fmt,...seoParams()});
   const txt=res.ok?res.text:'Could not regenerate.';
-  ta.value=txt;S.posts[i].text=txt;updateCC(i);
+  ta.value=txt;S.posts[i].text=txt;S.posts[i].slides=res.ok?(res.slides||[]):[];S.posts[i].hook=res.ok?(res.hook||''):'';
+  updateCC(i);renderReview();
 }
 
 async function factCheck(editorId, panelId){
@@ -896,18 +1016,23 @@ async function publishAll(){
   if(!token||!urn){msg.className='msg msg-err';msg.textContent='Please enter your access token and member URN.';return;}
   if(!approved.length){msg.className='msg msg-err';msg.textContent='No approved posts.';return;}
   setBtn('pub-btn','<span class="spin"></span>Publishing…',true);msg.textContent='';
-  let ok=0,fail=0,lastErr='';
+  let ok=0,fail=0,lastErr='',goldenHourTip='',cadence=null;
+  const niche=document.getElementById('niche')?.value.trim()||'';
   for(const p of approved){
     const s=document.getElementById('ps-'+p.id);
     if(s){s.textContent='Publishing…';}
-    const res=await api('/api/publish',{token,urn,text:p.text,asset_urn:p.assetUrn||''});
-    if(res.ok){ok++;if(s){s.textContent='Published';s.className='ps ps-pub';}}
+    const res=await api('/api/publish',{token,urn,text:p.text,asset_urn:p.assetUrn||'',topic:p.topic,niche});
+    if(res.ok){ok++;if(s){s.textContent='Published';s.className='ps ps-pub';}goldenHourTip=res.golden_hour_tip||goldenHourTip;cadence=res.cadence||cadence;}
     else{fail++;lastErr=res.error||'Unknown error';if(s){s.textContent='Failed';s.className='ps ps-fail';s.title=lastErr;}}
   }
   setBtn('pub-btn','Publish all approved posts to LinkedIn',false);
-  if(ok&&!fail){msg.className='msg msg-ok';msg.textContent=`All ${ok} post${ok>1?'s':''} published!`;}
-  else if(ok){msg.className='msg msg-info';msg.textContent=`${ok} published, ${fail} failed. Last error: ${lastErr}`;}
-  else{msg.className='msg msg-err';msg.textContent=`Publishing failed: ${lastErr}`;}
+  let statusHtml='';
+  if(ok&&!fail){msg.className='msg msg-ok';statusHtml=`All ${ok} post${ok>1?'s':''} published!`;}
+  else if(ok){msg.className='msg msg-info';statusHtml=`${ok} published, ${fail} failed. Last error: ${esc(lastErr)}`;}
+  else{msg.className='msg msg-err';statusHtml=`Publishing failed: ${esc(lastErr)}`;}
+  if(ok&&goldenHourTip) statusHtml+=`<br><strong>⏱ ${esc(goldenHourTip)}</strong>`;
+  msg.innerHTML=statusHtml;
+  if(ok&&cadence) document.getElementById('cadence-banner').innerHTML=cadenceBannerHtml(cadence);
 }
 
 function copyAll(){
@@ -923,6 +1048,8 @@ function copyAll(){
 
 let topicResults = [];
 let topicCurrentText = '';
+let topicSlides = [];
+let topicHook = '';
 
 async function searchTopic(){
   const topic = document.getElementById('topic-input').value.trim();
@@ -994,6 +1121,7 @@ async function draftFromTopic(){
     tone:    document.getElementById('topic-tone').value,
     length:  document.getElementById('topic-length').value,
     angle:   document.getElementById('topic-angle').value.trim(),
+    format:  document.getElementById('topic-format')?.value||'standard',
     ...seoParams('topic'),
   });
 
@@ -1001,10 +1129,15 @@ async function draftFromTopic(){
   if(!res.ok){alert('Draft failed: '+res.error);return;}
 
   topicCurrentText=res.text;
+  topicSlides=res.slides||[];
+  topicHook=res.hook||'';
   document.getElementById('topic-draft-editor').value=res.text;
   document.getElementById('topic-preview').textContent=res.text;
   updateTopicCC();
   renderTopicHashtags(res.hashtags||[]);
+  const slidesEl=document.getElementById('topic-slides');
+  if(topicSlides.length){slidesEl.innerHTML=renderSlidesHtml(topicSlides,topicHook,'topic');slidesEl.style.display='block';}
+  else{slidesEl.style.display='none';}
   document.getElementById('topic-draft-wrap').style.display='block';
   document.getElementById('topic-draft-wrap').scrollIntoView({behavior:'smooth',block:'start'});
 }
@@ -1044,11 +1177,18 @@ function renderTopicHashtags(hashtags){
 }
 
 function updateTopicCC(){
-  const n=document.getElementById('topic-draft-editor').value.length;
+  const val=document.getElementById('topic-draft-editor').value;
+  const n=val.length;
   const el=document.getElementById('topic-cc');
   el.textContent=n+' / 3000';
   el.className='charcount'+(n>2800?' warn':'');
-  document.getElementById('topic-preview').textContent=document.getElementById('topic-draft-editor').value||'Preview appears here.';
+  document.getElementById('topic-preview').textContent=val||'Preview appears here.';
+  const lw=document.getElementById('topic-link-warn');
+  if(lw){
+    const links=detectLinks(val);
+    lw.style.display=links.length?'block':'none';
+    lw.textContent='⚠ Contains a link — LinkedIn penalizes a link in the body (or the first comment) the same way. Consider naming the source instead.';
+  }
 }
 
 async function publishTopicPost(){
@@ -1068,11 +1208,15 @@ async function publishTopicPost(){
     assetUrn=await uploadImageForPost('topic',token,urn);
   }
 
-  const res=await api('/api/publish',{token,urn,text,asset_urn:assetUrn});
+  const res=await api('/api/publish',{token,urn,text,asset_urn:assetUrn,topic:document.getElementById('topic-input').value.trim()});
 
   if(btn){btn.innerHTML='Publish now';btn.disabled=false;}
 
-  if(res.ok){msg.className='msg msg-ok';msg.textContent='Published to LinkedIn!';}
+  if(res.ok){
+    msg.className='msg msg-ok';
+    msg.innerHTML='Published to LinkedIn!'+(res.golden_hour_tip?`<br><strong>⏱ ${esc(res.golden_hour_tip)}</strong>`:'');
+    if(res.cadence) document.getElementById('cadence-banner').innerHTML=cadenceBannerHtml(res.cadence);
+  }
   else{msg.className='msg msg-err';msg.textContent='Failed: '+res.error;}
 }
 
@@ -1167,7 +1311,7 @@ async function clearSeenCache(){
     if(li.token){document.getElementById('r-token').value=li.token;document.getElementById('p-token').value=li.token;}
     if(li.urn){document.getElementById('r-urn').value=li.urn;document.getElementById('p-urn').value=li.urn;}
   }catch(_){}
-  loadCacheInfo();
+  loadCacheInfo();loadCadenceInfo();
 })();
 </script>
 </body>

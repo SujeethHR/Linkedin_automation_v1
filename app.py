@@ -7,8 +7,11 @@ Open: http://localhost:5001
 
 Features:
   - AI trend fetching (DuckDuckGo + RSS + Google Trends + Twitter/X)
-  - Post drafting with hashtags
-  - LinkedIn publishing (text + image posts)
+  - Post drafting with hashtags, tuned for LinkedIn's 2026 Interest Graph / Depth
+    Score ranking (scroll-stopping hooks, no link penalty, comment-driving CTAs)
+  - LinkedIn publishing (text + image + Document/carousel posts)
+  - Carousel outline generation + PDF rendering + one-click Document post publish
+  - Posting-cadence and niche-drift tracking to avoid reach cannibalization
   - Seen-articles cache (no repeated content)
   - Custom topic search (news + research papers)
 """
@@ -16,9 +19,10 @@ Features:
 import os, json, re, requests, time, threading, logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
+from io import BytesIO
 from urllib.parse import quote as url_quote
 from xml.etree import ElementTree as ET
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_file
 from dotenv import load_dotenv
 
 try:
@@ -33,13 +37,20 @@ try:
 except ImportError:
     PYTRENDS_AVAILABLE = False
 
+try:
+    from PIL import Image, ImageDraw, ImageFont
+    PDF_AVAILABLE = True
+except ImportError:
+    PDF_AVAILABLE = False
+
 load_dotenv()
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
 # ── File-write locks (prevent corruption from concurrent web requests) ─────────
-_seen_lock  = threading.Lock()
+_seen_lock    = threading.Lock()
+_history_lock = threading.Lock()
 
 import os as _os
 _template_folder = _os.environ.get("LINKEDIN_STUDIO_TEMPLATE_FOLDER", "templates")
@@ -51,11 +62,13 @@ ABACUS_API_KEY    = os.getenv("ABACUS_API_KEY",    "")
 ABACUS_BASE_URL   = os.getenv("ABACUS_BASE_URL",   "https://routellm.abacus.ai/v1")
 ABACUS_MODEL      = os.getenv("ABACUS_MODEL",      "route-llm")
 LINKEDIN_API_VERSION = os.getenv("LINKEDIN_API_VERSION", "202606")
-LINKEDIN_POSTS_URL   = "https://api.linkedin.com/rest/posts"
-LINKEDIN_IMAGES_URL  = "https://api.linkedin.com/rest/images"
+LINKEDIN_POSTS_URL     = "https://api.linkedin.com/rest/posts"
+LINKEDIN_IMAGES_URL    = "https://api.linkedin.com/rest/images"
+LINKEDIN_DOCUMENTS_URL = "https://api.linkedin.com/rest/documents"
 LINKEDIN_TOKEN    = os.getenv("LINKEDIN_TOKEN",    "")
 LINKEDIN_URN      = os.getenv("LINKEDIN_URN",      "")
 SEEN_FILE         = _os.path.join(_data_dir, "seen_articles.json")
+POST_HISTORY_FILE = _os.path.join(_data_dir, "post_history.json")
 
 # ── RSS feeds ──────────────────────────────────────────────────────────────────
 RSS_FEEDS = {
@@ -197,6 +210,80 @@ def mark_seen(titles: list, urls: list):
 def clear_seen_cache():
     save_seen({})
 
+# ── Post-history / cadence tracking ────────────────────────────────────────────
+# LinkedIn's 2026 ranking (Interest Graph + Depth Score) punishes daily "post and
+# ghost" behavior and rewards 2-4 posts/week with room for each to circulate.
+# We log every successful publish so the app can warn before the person
+# cannibalizes their own reach or drifts off their declared niche.
+
+def load_history() -> list:
+    if not os.path.exists(POST_HISTORY_FILE):
+        return []
+    try:
+        with open(POST_HISTORY_FILE) as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+def save_history(history: list):
+    tmp = POST_HISTORY_FILE + ".tmp"
+    try:
+        with _history_lock:
+            with open(tmp, "w") as f:
+                json.dump(history[-200:], f, indent=2)  # cap unbounded growth
+            os.replace(tmp, POST_HISTORY_FILE)
+    except Exception as e:
+        logger.error(f"[history] Save error: {e}")
+
+def record_publish(topic: str, niche: str = ""):
+    history = load_history()
+    history.append({"ts": datetime.now().isoformat(), "topic": topic[:120], "niche": niche[:120]})
+    save_history(history)
+
+def cadence_status() -> dict:
+    history = load_history()
+    now      = datetime.now()
+    last_7d  = [h for h in history
+                if (now - datetime.fromisoformat(h["ts"])) <= timedelta(days=7)]
+    warnings = []
+    days_since_last = None
+
+    if history:
+        hours_since = (now - datetime.fromisoformat(history[-1]["ts"])).total_seconds() / 3600
+        days_since_last = round(hours_since / 24, 1)
+        if hours_since < 36:
+            warnings.append(
+                "Less than 36 hours since your last post — publishing again now cannibalizes "
+                "that post's reach before LinkedIn finishes circulating it."
+            )
+    if len(last_7d) >= 5:
+        warnings.append(
+            f"{len(last_7d)} posts in the last 7 days. LinkedIn now favors 2-4 posts/week with "
+            "room to breathe over daily posting — high-value posts can circulate up to two weeks."
+        )
+    elif len(last_7d) == 0 and history:
+        warnings.append(
+            "No posts in the last 7 days. A long gap still costs momentum with the "
+            "interest-matching model, even though good posts keep circulating for a while."
+        )
+
+    niches = [h.get("niche","").strip().lower() for h in history[-10:] if h.get("niche")]
+    niche_drift_warning = None
+    if len(niches) >= 4 and len(set(niches)) / len(niches) > 0.6:
+        niche_drift_warning = (
+            "Your last few posts span several different niches/angles. LinkedIn's Interest Graph "
+            "matches posts to readers by topic history — scattering topics confuses that match and "
+            "caps distribution. Stick to 3 core topics that map to your profile."
+        )
+
+    return {
+        "posts_last_7d":  len(last_7d),
+        "days_since_last": days_since_last,
+        "total_tracked":  len(history),
+        "warnings":       warnings,
+        "niche_drift_warning": niche_drift_warning,
+    }
+
 # ── LinkedIn image upload ──────────────────────────────────────────────────────
 
 def upload_image_to_linkedin(token: str, urn: str, image_bytes: bytes, mime_type: str = "image/jpeg") -> tuple:
@@ -230,16 +317,125 @@ def upload_image_to_linkedin(token: str, urn: str, image_bytes: bytes, mime_type
     except Exception as e:
         return "", f"Image upload error: {e}"
 
+# ── LinkedIn document upload (carousel / document posts) ──────────────────────
+
+def upload_document_to_linkedin(token: str, urn: str, doc_bytes: bytes) -> tuple:
+    """Upload a PDF to LinkedIn via the Documents API. Returns (document_urn, error)."""
+    li_headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+        "X-Restli-Protocol-Version": "2.0.0",
+        "LinkedIn-Version": LINKEDIN_API_VERSION,
+    }
+    reg_payload = {"initializeUploadRequest": {"owner": urn}}
+    try:
+        r = requests.post(f"{LINKEDIN_DOCUMENTS_URL}?action=initializeUpload",
+                          headers=li_headers, json=reg_payload, timeout=20)
+        if not r.ok:
+            return "", f"Document register failed {r.status_code}: {r.text[:200]}"
+        data       = r.json()["value"]
+        upload_url = data["uploadUrl"]
+        doc_urn    = data["document"]
+    except Exception as e:
+        return "", f"Document register error: {e}"
+
+    try:
+        r = requests.put(upload_url, headers={"Authorization": f"Bearer {token}"},
+                         data=doc_bytes, timeout=60)
+        if r.status_code not in (200, 201):
+            return "", f"Document upload failed {r.status_code}: {r.text[:200]}"
+        logger.info(f"[document] ✓ Uploaded to LinkedIn — asset: {doc_urn}")
+        return doc_urn, ""
+    except Exception as e:
+        return "", f"Document upload error: {e}"
+
+# ── Carousel PDF rendering ──────────────────────────────────────────────────────
+# LinkedIn's Depth Score rewards Document posts (PDF carousels) with far longer
+# dwell time than plain text, so we render the drafted hook + slides into an
+# actual multi-page PDF here rather than leaving it as a manual copy/paste step.
+
+_CAROUSEL_W, _CAROUSEL_H = 1080, 1350
+_CAROUSEL_PAD            = 90
+
+_PDF_CHAR_MAP = str.maketrans({
+    "—": "-", "–": "-", "→": "->", "‘": "'", "’": "'",
+    "“": '"', "”": '"', "…": "...", " ": " ",
+})
+
+def _sanitize_pdf_text(text: str) -> str:
+    """The bundled default font used for carousel slides doesn't cover em-dashes,
+    smart quotes or arrows — swap them for ASCII equivalents so nothing renders
+    as a tofu box."""
+    return (text or "").translate(_PDF_CHAR_MAP)
+
+def _wrap_text(draw, text: str, font, max_width: int) -> list:
+    words, lines, cur = (text or "").split(), [], ""
+    for w in words:
+        trial = (cur + " " + w).strip()
+        if draw.textlength(trial, font=font) <= max_width:
+            cur = trial
+        else:
+            if cur: lines.append(cur)
+            cur = w
+    if cur: lines.append(cur)
+    return lines
+
+def render_carousel_pdf(hook: str, slides: list, topic: str = "") -> bytes:
+    """Render a hook slide + one slide per item in `slides` into a multi-page PDF."""
+    if not PDF_AVAILABLE:
+        raise RuntimeError("Pillow is required to build a carousel PDF — pip install pillow.")
+    if not slides:
+        raise ValueError("No slides to build a carousel from.")
+
+    font_hook    = ImageFont.load_default(size=64)
+    font_heading = ImageFont.load_default(size=46)
+    font_body    = ImageFont.load_default(size=32)
+    font_meta    = ImageFont.load_default(size=26)
+    pages = []
+
+    # Slide 1 — the hook, styled to pass the Golden Hour scroll-stop test.
+    img  = Image.new("RGB", (_CAROUSEL_W, _CAROUSEL_H), (26, 26, 26))
+    draw = ImageDraw.Draw(img)
+    hook_text = _sanitize_pdf_text(hook or topic or "Swipe for more")
+    lines = _wrap_text(draw, hook_text, font_hook, _CAROUSEL_W - 2*_CAROUSEL_PAD)
+    y = (_CAROUSEL_H - len(lines)*78) // 2
+    for line in lines:
+        w = draw.textlength(line, font=font_hook)
+        draw.text(((_CAROUSEL_W-w)//2, y), line, font=font_hook, fill=(255,255,255))
+        y += 78
+    draw.text((_CAROUSEL_PAD, _CAROUSEL_H-70), "Swipe for more ->", font=font_meta, fill=(120,170,230))
+    pages.append(img)
+
+    # Content slides.
+    for i, s in enumerate(slides, 1):
+        img  = Image.new("RGB", (_CAROUSEL_W, _CAROUSEL_H), (255, 255, 255))
+        draw = ImageDraw.Draw(img)
+        draw.rectangle([0, 0, 14, _CAROUSEL_H], fill=(55, 138, 221))
+        y = _CAROUSEL_PAD
+        heading = _sanitize_pdf_text(s.get("heading",""))
+        body    = _sanitize_pdf_text(s.get("body",""))
+        for line in _wrap_text(draw, heading, font_heading, _CAROUSEL_W - 2*_CAROUSEL_PAD):
+            draw.text((_CAROUSEL_PAD, y), line, font=font_heading, fill=(20,20,20)); y += 58
+        y += 20
+        for line in _wrap_text(draw, body, font_body, _CAROUSEL_W - 2*_CAROUSEL_PAD):
+            draw.text((_CAROUSEL_PAD, y), line, font=font_body, fill=(80,80,80)); y += 44
+        draw.text((_CAROUSEL_PAD, _CAROUSEL_H-60), f"{i} / {len(slides)}", font=font_meta, fill=(160,160,160))
+        pages.append(img)
+
+    buf = BytesIO()
+    pages[0].save(buf, format="PDF", save_all=True, append_images=pages[1:])
+    return buf.getvalue()
+
 # ── LinkedIn publish ───────────────────────────────────────────────────────────
 
-def do_publish(token, urn, text, asset_urn: str = "") -> tuple:
-    """Publish text or image+text post. Returns (True, post_urn) or (False, error)."""
+def do_publish(token, urn, text, asset_urn: str = "", media_title: str = "") -> tuple:
+    """Publish a text, image+text, or document(carousel)+text post. Returns (True, post_urn) or (False, error)."""
     if not token: return False, "LinkedIn access token is missing."
     if not urn:   return False, "LinkedIn member URN is missing."
     if not urn.startswith("urn:li:person:"): return False, f"URN format wrong: '{urn}'"
     if not text:  return False, "Post text is empty."
 
-    logger.info(f"[publish] URN: {urn[:30]}... Image: {'yes' if asset_urn else 'no'}")
+    logger.info(f"[publish] URN: {urn[:30]}... Media: {'document' if media_title else ('image' if asset_urn else 'none')}")
 
     payload = {
         "author": urn,
@@ -254,7 +450,8 @@ def do_publish(token, urn, text, asset_urn: str = "") -> tuple:
         "isReshareDisabledByAuthor": False,
     }
     if asset_urn:
-        payload["content"] = {"media": {"id": asset_urn}}
+        payload["content"] = {"media": {"id": asset_urn, "title": media_title}} if media_title \
+                              else {"media": {"id": asset_urn}}
 
     headers = {
         "Authorization": f"Bearer {token}",
@@ -323,6 +520,67 @@ def seo_rules_block(keyword: str = "") -> str:
     if keyword.strip():
         block += '- Primary keyword to target: "' + keyword.strip() + '".\n'
     return block
+
+# ── 2026 algorithm rules (Interest Graph + Depth Score) ────────────────────────
+# LinkedIn rebuilt content-ranking around an Interest Graph (matches posts to
+# readers by topic history, not just network) and a Depth Score (dwell time,
+# saves, long comments — not likes). These rules are baked into every draft so
+# posts survive the "Golden Hour" test instead of getting capped early.
+
+def algo_rules_block() -> str:
+    return (
+        "\nLinkedIn's current ranking model (2026) uses an Interest Graph and a Depth Score, "
+        "not raw network reach — write to survive both:\n"
+        "- The first 1-2 lines are the 'Golden Hour' test: a tiny sample of readers sees the post "
+        "first, and if they scroll past, distribution is capped for good. Open with a sharp, "
+        "hyper-specific hook (a number, a named detail, a concrete outcome) that would stop a "
+        "total stranger — never a vague scene-setter like 'Something big happened...'.\n"
+        "- Optimize for dwell time and depth, not likes: one clear idea per short paragraph, a "
+        "genuinely useful specific takeaway, and at least one self-contained sentence that reads "
+        "well quoted on its own.\n"
+        "- End with a specific question that requires a real, considered answer — never a generic "
+        "'Thoughts?' or 'Agree?'. Long thoughtful comments and saves now outrank quick reactions.\n"
+        "- Do not include any URL in the post text, and never say 'link in comments' — a link in "
+        "the first comment is penalized exactly like a link in the body. Name sources by name only.\n"
+        "- Stay tightly on one specific topic/angle rather than hedging across several — "
+        "topic-scattering confuses the interest-matching model and caps distribution.\n"
+    )
+
+_URL_RE = re.compile(r"https?://\S+|(?<!\w)www\.\S+", re.IGNORECASE)
+
+def detect_links(text: str) -> list:
+    """URLs in a draft/post — flagged because LinkedIn penalizes a link in the body
+    or first comment identically under the current ranking model."""
+    return _URL_RE.findall(text or "")
+
+def carousel_rules_block() -> str:
+    return (
+        "\nFormat this as a LinkedIn Document Post (PDF carousel) outline instead of a single "
+        "text post — carousels force far longer dwell time than plain text, which the current "
+        "algorithm rewards heavily over quick-like content.\n"
+        "Return ONLY valid JSON in this exact shape:\n"
+        '{"hook":"<sharp 1-line hook for slide 1, written to stop a stranger scrolling>",'
+        '"slides":[{"heading":"<short slide heading>","body":"<1-3 sentence slide body>"}],'
+        '"caption":"<short LinkedIn caption to accompany the carousel upload, 2-4 sentences, '
+        'no links, ending with a specific question that invites a real comment>"}\n'
+        "6 to 9 slides. Each slide should stand alone but build toward one clear takeaway.\n"
+    )
+
+def parse_json_response(raw: str, pattern: str = r"\{.*\}") -> dict:
+    """Strip ``` fences and parse a JSON object from an LLM reply, with a regex
+    fallback for replies wrapped in prose or truncated around the array/object."""
+    raw = raw.strip()
+    if raw.startswith("```"):
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:].strip()
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        m = re.search(pattern, raw, re.DOTALL)
+        if m:
+            return json.loads(m.group())
+        raise
 
 # ── Hashtag generator ──────────────────────────────────────────────────────────
 
@@ -695,14 +953,39 @@ def draft_post():
     length  = body.get("length", "medium")
     seo     = bool(body.get("seo", False))
     keyword = body.get("keyword", "")
+    post_format = body.get("format", "standard")
     lg      = {"short":"under 300 characters","medium":"300 to 800 characters",
                "long":"800 to 1500 characters"}.get(length,"300 to 800 characters")
+
+    if post_format == "carousel":
+        user_msg = (
+            "Create LinkedIn Document Post (carousel) content about this AI trend.\n\n"
+            "Trend: " + topic + "\nContext: " + summary + "\nWhy it matters: " + why +
+            "\nTone: " + tone + "\n" + carousel_rules_block()
+        )
+        try:
+            raw = call_chatllm(
+                messages=[
+                    {"role": "system", "content": "You are a LinkedIn ghostwriter who designs document-post carousels."},
+                    {"role": "user",   "content": user_msg},
+                ],
+                max_tokens=1800,
+            )
+            data     = parse_json_response(raw)
+            caption  = data.get("caption", "")
+            hashtags = generate_hashtags(topic, caption, seo=seo, keyword=keyword)
+            return jsonify({"ok": True, "format": "carousel", "hook": data.get("hook",""),
+                             "slides": data.get("slides", []), "text": caption,
+                             "hashtags": hashtags, "link_warning": bool(detect_links(caption))})
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
     user_msg = (
         "Write a LinkedIn post about this AI trend.\n\nTrend: " + topic +
         "\nContext: " + summary + "\nWhy it matters: " + why +
         "\nTone: " + tone + "\nTarget length: " + lg + "\n\n"
-        "Rules: first person, no hashtags, scroll-stopping first line, "
-        "genuine not promotional, short paragraphs, end with question or CTA.\n"
+        "Rules: first person, no hashtags, genuine not promotional, short paragraphs.\n"
+        + algo_rules_block()
         + (seo_rules_block(keyword) if seo else "") +
         "Return ONLY the post text."
     )
@@ -715,7 +998,8 @@ def draft_post():
             max_tokens=1500,
         ).strip()
         hashtags = generate_hashtags(topic, text, seo=seo, keyword=keyword)
-        return jsonify({"ok": True, "text": text, "hashtags": hashtags})
+        return jsonify({"ok": True, "format": "standard", "text": text, "hashtags": hashtags,
+                         "link_warning": bool(detect_links(text))})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
@@ -773,6 +1057,7 @@ def draft_from_topic():
     angle    = body.get("angle","")
     seo      = bool(body.get("seo", False))
     keyword  = body.get("keyword", "")
+    post_format = body.get("format", "standard")
     if not topic:
         return jsonify({"ok": False, "error": "Topic is required."}), 400
     lg = {"short":"under 300 characters","medium":"300 to 800 characters",
@@ -790,13 +1075,38 @@ def draft_from_topic():
         sources_block += line
     if not sources_block:
         sources_block = "(No sources — use general knowledge about: " + topic + ")"
+
+    if post_format == "carousel":
+        user_msg = (
+            "Create LinkedIn Document Post (carousel) content about: " + topic + "\nTone: " + tone +
+            ("\nCustom angle: " + angle + "\n" if angle else "") +
+            "\nSource material:\n" + sources_block +
+            "\nReference specific source details in the slides.\n" + carousel_rules_block()
+        )
+        try:
+            raw = call_chatllm(
+                messages=[
+                    {"role": "system", "content": "You are a LinkedIn ghostwriter who designs document-post carousels."},
+                    {"role": "user",   "content": user_msg},
+                ],
+                max_tokens=1800,
+            )
+            data     = parse_json_response(raw)
+            caption  = data.get("caption", "")
+            hashtags = generate_hashtags(topic, caption, seo=seo, keyword=keyword)
+            return jsonify({"ok": True, "format": "carousel", "hook": data.get("hook",""),
+                             "slides": data.get("slides", []), "text": caption,
+                             "hashtags": hashtags, "link_warning": bool(detect_links(caption))})
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
     user_msg = (
         "Write a LinkedIn post about: " + topic + "\nTone: " + tone +
         "\nTarget length: " + lg +
         ("\nCustom angle: " + angle + "\n" if angle else "") +
         "\nSource material:\n" + sources_block +
-        "\nRules: first person, no hashtags, scroll-stopping hook, "
-        "reference specific source details, short paragraphs, end with question or CTA.\n"
+        "\nRules: first person, no hashtags, reference specific source details, short paragraphs.\n"
+        + algo_rules_block()
         + (seo_rules_block(keyword) if seo else "") +
         "Return ONLY the post text."
     )
@@ -809,7 +1119,8 @@ def draft_from_topic():
             max_tokens=1500,
         ).strip()
         hashtags = generate_hashtags(topic, text, seo=seo, keyword=keyword)
-        return jsonify({"ok": True, "text": text, "hashtags": hashtags})
+        return jsonify({"ok": True, "format": "standard", "text": text, "hashtags": hashtags,
+                         "link_warning": bool(detect_links(text))})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
@@ -841,14 +1152,86 @@ def publish():
     urn       = body.get("urn","").strip()       or LINKEDIN_URN
     text      = body.get("text","").strip()
     asset_urn = body.get("asset_urn","").strip()
+    topic     = body.get("topic","").strip()
+    niche     = body.get("niche","").strip()
     if not token: return jsonify({"ok": False, "error": "LinkedIn access token required."}), 400
     if not urn:   return jsonify({"ok": False, "error": "LinkedIn member URN required."}), 400
     if not text:  return jsonify({"ok": False, "error": "Post text is empty."}), 400
 
     ok, result = do_publish(token, urn, text, asset_urn)
     if ok:
-        return jsonify({"ok": True, "message": "Published!", "post_urn": result})
+        record_publish(topic or text[:60], niche)
+        return jsonify({
+            "ok": True, "message": "Published!", "post_urn": result,
+            "link_warning": bool(detect_links(text)),
+            "golden_hour_tip": (
+                "Golden Hour: reply to every comment in the next 2 hours. Early replies signal a "
+                "real conversation and are how a post earns wider distribution past the first sample."
+            ),
+            "cadence": cadence_status(),
+        })
     return jsonify({"ok": False, "error": result}), 400
+
+@app.route("/api/cadence-status")
+def cadence_status_route():
+    return jsonify({"ok": True, **cadence_status()})
+
+# Build a carousel PDF and publish it as a LinkedIn Document post
+@app.route("/api/publish-carousel", methods=["POST"])
+def publish_carousel():
+    body    = request.json or {}
+    token   = body.get("token","").strip()  or LINKEDIN_TOKEN
+    urn     = body.get("urn","").strip()    or LINKEDIN_URN
+    hook    = body.get("hook","").strip()
+    slides  = body.get("slides", [])
+    caption = body.get("caption","").strip()
+    topic   = body.get("topic","").strip()
+    niche   = body.get("niche","").strip()
+
+    if not token:   return jsonify({"ok": False, "error": "LinkedIn access token required."}), 400
+    if not urn:     return jsonify({"ok": False, "error": "LinkedIn member URN required."}), 400
+    if not slides:  return jsonify({"ok": False, "error": "No slides to build a carousel from."}), 400
+    if not caption: return jsonify({"ok": False, "error": "Caption text is empty."}), 400
+
+    try:
+        pdf_bytes = render_carousel_pdf(hook, slides, topic)
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"Could not build carousel PDF: {e}"}), 500
+
+    doc_urn, err = upload_document_to_linkedin(token, urn, pdf_bytes)
+    if not doc_urn:
+        return jsonify({"ok": False, "error": err}), 400
+
+    title = (topic or hook or "Carousel").strip()[:80] + ".pdf"
+    ok, result = do_publish(token, urn, caption, asset_urn=doc_urn, media_title=title)
+    if ok:
+        record_publish(topic or caption[:60], niche)
+        return jsonify({
+            "ok": True, "message": "Carousel published!", "post_urn": result,
+            "link_warning": bool(detect_links(caption)),
+            "golden_hour_tip": (
+                "Golden Hour: reply to every comment in the next 2 hours. Early replies signal a "
+                "real conversation and are how a post earns wider distribution past the first sample."
+            ),
+            "cadence": cadence_status(),
+        })
+    return jsonify({"ok": False, "error": result}), 400
+
+# Download the carousel PDF to preview before publishing
+@app.route("/api/carousel-pdf-preview", methods=["POST"])
+def carousel_pdf_preview():
+    body   = request.json or {}
+    hook   = body.get("hook","").strip()
+    slides = body.get("slides", [])
+    topic  = body.get("topic","").strip()
+    if not slides:
+        return jsonify({"ok": False, "error": "No slides to preview."}), 400
+    try:
+        pdf_bytes = render_carousel_pdf(hook, slides, topic)
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+    return send_file(BytesIO(pdf_bytes), mimetype="application/pdf",
+                      as_attachment=True, download_name="carousel-preview.pdf")
 
 # Debug publish
 @app.route("/api/debug-publish", methods=["POST"])
@@ -943,7 +1326,7 @@ def fact_check():
                     "If there are no verifiable facts, return []."
                 )},
             ],
-            max_tokens=400,
+            max_tokens=1000,
         )
         claims_raw = claims_raw.strip()
         if claims_raw.startswith("```"):
@@ -953,6 +1336,23 @@ def fact_check():
         claims = json.loads(claims_raw)
         if not isinstance(claims, list):
             claims = []
+    except json.JSONDecodeError as e:
+        # Reply wrapped in prose, or truncated mid-array — try to salvage the array.
+        claims = []
+        m = re.search(r"\[.*\]", claims_raw, re.DOTALL)
+        if m:
+            try:
+                parsed = json.loads(m.group())
+                if isinstance(parsed, list):
+                    claims = parsed
+            except Exception:
+                pass
+        if not claims:
+            logger.warning(f"[fact-check] Claim extraction parse error: {e} — raw: {claims_raw[:300]}")
+            return jsonify({"ok": False,
+                            "error": "Could not parse the extracted claims — the model reply was "
+                                     "truncated or malformed. Try again.",
+                            "raw": claims_raw}), 500
     except Exception as e:
         logger.warning(f"[fact-check] Claim extraction error: {e}")
         return jsonify({"ok": False, "error": f"Could not extract claims: {e}"}), 500

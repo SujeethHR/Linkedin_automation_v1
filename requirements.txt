@@ -15,3 +15,6 @@ ddgs>=0.1.0
 
 # ── Google Trends (optional — enables trending topic detection) ────────────────
 pytrends>=4.9.0
+
+# ── Carousel PDF rendering — builds Document posts from carousel outlines ──────
+pillow>=10.1.0

@@ -11,3 +11,4 @@ wheels/
 .env
 .claude
 seen_articles.json
+post_history.json
